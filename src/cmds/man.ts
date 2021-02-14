@@ -3,7 +3,7 @@ import yargs from "yargs"
 
 
 // Install function
-export function cmdMan(args: yargs.Arguments): void {
+export async function cmdMan(args: yargs.Arguments) {
     console.log("Not implemented")
     process.exit(1)
 

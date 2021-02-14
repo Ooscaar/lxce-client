@@ -3,7 +3,7 @@ import yargs from "yargs"
 
 
 // Install function
-export function cmdAlias(args: yargs.Arguments): void {
+export async function cmdAlias(args: yargs.Arguments) {
     console.log("Not implemented")
     process.exit(1)
 

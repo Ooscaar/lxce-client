@@ -3,7 +3,7 @@ import * as CONST from "./constants";
 import yargs, { string } from "yargs";
 
 // Commands imports
-// TODO: clean import
+// TODO: clean imports
 import {cmdInstall} from "./cmds/install"
 import {cmdInit} from "./cmds/init"
 import {cmdLaunch} from "./cmds/launch"
@@ -20,6 +20,13 @@ import {cmdMan} from "./cmds/man"
 
 // Args
 // TODO: generalize commands parameters
+// Usage:
+// #!/usr/bin/env node
+// require('yargs')
+//   .commandDir('cmds')
+//   .demand(1)
+//   .help()
+//   .argv
 const argv = yargs(process.argv.slice(2))
     .command({
         command: "install",

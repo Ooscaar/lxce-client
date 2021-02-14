@@ -3,7 +3,7 @@ import yargs from "yargs"
 
 
 // Install function
-export function cmdPass(args: yargs.Arguments): void {
+export async function cmdPass(args: yargs.Arguments) {
     console.log("Not implemented")
     process.exit(1)
 

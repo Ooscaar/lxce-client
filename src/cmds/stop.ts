@@ -4,7 +4,7 @@ import { exit } from "process"
 
 
 // Install function
-export function cmdStop(args: yargs.Arguments): void {
+export async function cmdStop(args: yargs.Arguments) {
     console.log("Not implemented")
     process.exit(1)
 
