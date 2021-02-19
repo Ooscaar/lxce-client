@@ -2,6 +2,7 @@
 // Configurations constants
 
 import yargs from "yargs";
+import { Config, adjectives, colors, animals } from 'unique-names-generator';
 
 // ------------------------
 export const UPC = '.upc.edu';
@@ -29,7 +30,7 @@ export const CONF_FILE_DATA = {
     ],
   "locations":
     [
-      "/datassd/",
+      "/home/alice/workingcopies/tfg-lxce/datassd/",
     ],
 };
 
@@ -61,3 +62,9 @@ export const CONTAINER_CONFIG_DEFAULT = {   // save in DEFAULT_CONTAINER_CONF_FI
 
 };
 
+
+export const NAMES_CONFIG: Config = {
+  dictionaries: [adjectives, colors],
+  separator: '-',
+  length: 2,
+};
