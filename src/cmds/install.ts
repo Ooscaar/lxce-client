@@ -6,11 +6,6 @@ import yargs from "yargs"
 import * as utils from "../utils/util"
 import { BASE_DIR, CONTAINER_CONFIG_DEFAULT, CONF_FILE, CONF_FILE_DATA, DEFAULT_CONTAINER_CONF_FILE } from "../constants"
 
-// Constants
-// FIXME: include everything in utils?
-const mkDir = util.promisify(fs.mkdir)
-const existsFile = util.promisify(fs.exists)
-const writeFile = util.promisify(fs.writeFile)
 
 
 // Install function
@@ -33,7 +28,7 @@ export function cmdInstall(args: yargs.Arguments) {
         fs.writeFileSync(
             DEFAULT_CONTAINER_CONF_FILE, 
             JSON.stringify(CONTAINER_CONFIG_DEFAULT, null, 2)
-        );
+        )
         console.log("Write: ", CONTAINER_CONFIG_DEFAULT)
 
     } catch(err) {
