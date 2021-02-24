@@ -1,22 +1,20 @@
-// Consts and helpers
-import * as arguments from "./constants"         //Ugly?
 import yargs, { string, describe } from "yargs";
 
 // Commands imports
 // TODO: clean imports
 // follow: https://github.com/gebhartn/motive.cli/blob/master/src/cmds/index.ts
-import {cmdInstall} from "./cmds/install"
-import {cmdInit} from "./cmds/init"
-import {cmdLaunch} from "./cmds/launch"
-import {cmdDelete} from "./cmds/delete"
-import {cmdDestroy} from "./cmds/destroy"
-import {cmdStart} from "./cmds/start"
-import {cmdStop} from "./cmds/stop"
-import {cmdProxy} from "./cmds/proxy"
-import {cmdPass} from "./cmds/pass"
-import {cmdShow} from "./cmds/show"
-import {cmdNginx} from "./cmds/nginx"
-import {cmdMan} from "./cmds/man"
+import { cmdInstall } from "./cmds/install"
+import { cmdInit } from "./cmds/init"
+import { cmdLaunch } from "./cmds/launch"
+import { cmdDelete } from "./cmds/delete"
+import { cmdDestroy } from "./cmds/destroy"
+import { cmdStart } from "./cmds/start"
+import { cmdStop } from "./cmds/stop"
+import { cmdProxy } from "./cmds/proxy"
+import { cmdPass } from "./cmds/pass"
+import { cmdShow } from "./cmds/show"
+import { cmdNginx } from "./cmds/nginx"
+import { cmdMan } from "./cmds/man"
 
 
 // ------------------------
@@ -29,130 +27,132 @@ const configFile: yargs.Options = {
     demand: false,
     type: 'string',
     nargs: 1,
-  };
-  const name: yargs.Options = {
+};
+const name: yargs.Options = {
     alias: 'n',
     describe: 'Name of the container',
     demand: false,
     type: 'string',
     nargs: 1,
-  };
-  const aliasname: yargs.Options = {
+};
+
+const alias: yargs.Options = {
     alias: 'a',
     describe: 'Alias name of the container',
     demand: false,
-    type: 'string',
-    nargs: 1,
-  };
-  const quiet: yargs.Options = {
+    type: 'array',
+};
+const quiet: yargs.Options = {
     alias: 'q',
     describe: 'Quiet mode',
     demand: false,
     type: 'boolean',
-  };
-  const user: yargs.Options = {
+};
+const user: yargs.Options = {
     alias: 'u',
-    describe: 'User to compute password. Default: alice and bob',
+    describe: 'User applied to the container',
     demand: false,
+    default: "user",
     type: 'string',
     nargs: 1,
-  };
-  const domain: yargs.Options = {
+};
+const domain: yargs.Options = {
     alias: 'd',
     describe: 'Domain name for a group of containers',
-    demand: false,
+    demand: true,
     type: 'string',
     nargs: 1,
-  };
-  const range: yargs.Options = {
+};
+const range: yargs.Options = {
     alias: 'r',
     describe: 'range of containers, e.g. -r 5 ',
     demand: false,
-    type: 'string',
+    default: 1,
+    type: 'number',
     nargs: 1,
-  };
-  const Range = {
+};
+const Range: yargs.Options = {
     alias: 'R',
     describe: 'Range of containers, e.g. -R 0-5 or 0-5',
     demand: false,
     type: 'string',
     nargs: 1,
-  };
-  const force = {
+};
+const force: yargs.Options = {
     alias: 'f',
     describe: 'Force changes ',
     demand: false,
     type: 'boolean',
-  };
-  const find = {
+};
+const find: yargs.Options = {
     describe: 'Find an item ',
     demand: false,
     type: 'string',
     nargs: 1,
-  };
-  const list = {
+};
+const list: yargs.Options = {
     alias: 'l',
     describe: 'list of items',
     demand: false,
     type: 'boolean',
-  };
-  const debug = {  // executes commands and provides a verbose output
+};
+const debug: yargs.Options = {  // executes commands and provides a verbose output
     describe: 'Debug mode. Verbose output ',
     demand: false,
     type: 'boolean',
-  };
-  const remove = {   // dry run shows the commands without executing any
+};
+const remove: yargs.Options = {   // dry run shows the commands without executing any
     alias: 'rm',
     describe: 'remove an item',
     demand: false,
     type: 'string',
     nargs: 1,
-  };
-  const dry = {   // dry run shows the commands without executing any
+};
+const dry: yargs.Options = {   // dry run shows the commands without executing any
     describe: 'Dry run of the command',
     demand: false,
     type: 'boolean',
-  };
-  const yes = {
+};
+const yes: yargs.Options = {
     alias: 'y',
     describe: 'yes answer to questions',
     demand: false,
     type: 'boolean',
-  };
-  const start = {
+};
+const start: yargs.Options = {
     describe: 'Start dockerized nginx',
     demand: false,
     type: 'boolean',
-  };
-  const stop = {
+};
+const stop: yargs.Options = {
     describe: 'Stop dockerized nginx',
     demand: false,
     type: 'boolean',
-  };
-  const restart = {
+};
+const restart: yargs.Options = {
     describe: 'Restart dockerized nginx',
     demand: false,
     type: 'boolean',
-  };
-  const reload = {
+};
+const reload: yargs.Options = {
     describe: 'Reload dockerized nginx',
     demand: false,
     type: 'boolean',
-  };
-  const purge = {
+};
+const purge: yargs.Options = {
     describe: 'Remove config files and certificates that do not have an asociated lxce container',
     demand: false,
     type: 'boolean',
-  };
-  const filter = {
+};
+const filter: yargs.Options = {
     alias: 'F',
     describe: 'List config files and certs for ContainerName',
     demand: false,
     type: 'string',
     nargs: 1,
-  };
+};
 
-/******************************************/    
+/******************************************/
 // Command line parsing
 /******************************************/
 const argv = yargs(process.argv.slice(2))
@@ -170,8 +170,10 @@ const argv = yargs(process.argv.slice(2))
         command: "launch",
         describe: "Launch containers from a config file or a domain",
         handler: cmdLaunch,
-        builder : {
-            name,
+        builder: {
+            alias,
+            range,
+            domain,
         },
     })
     .command(
