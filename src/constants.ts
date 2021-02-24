@@ -1,13 +1,12 @@
+
 // ------------------------
 // Configurations constants
-
-import yargs from "yargs";
-import { Config, adjectives, colors, animals } from 'unique-names-generator';
-
 // ------------------------
 export const UPC = '.upc.edu';
 export const rsa_key_size = 4096
 export const PASSWORD_LENGTH = 10;
+export const SEED_LENGHT = 8
+export const SEED_ENCODING = "hex"
 export const EMAIL = "jose.luis.munoz@upc.edu"; // Email for nginx certificates
 export const BASE_DIR = "/home/alice/workingcopies/tfg-lxce/etc/lxce/";
 // export const BASED_DIR = "/etc/lxce/"
@@ -21,7 +20,8 @@ export const CONF_FILE_DATA = {
   "hypervisor":
   {
     "SSH_hostname": "",
-    "SSH_suffix": ""
+    "SSH_suffix": "",
+    "SSH_port": ""
   },
   "seed": "",
   "domains":
@@ -36,9 +36,8 @@ export const CONF_FILE_DATA = {
 
 export const LXCE_DIR = "lxce/";
 export const CONTAINER_CONFIG_DEFAULT = {   // save in DEFAULT_CONTAINER_CONF_FILE
-  //id: 0,                                  // Identifier from 0 to 99. Autocomputed if empty.
+  alias: "",
   domain: 'default',                        // Domain name for the container
-  alias: '',
   base: 'ubuntu:20.04',                     // Base name in lxc launch
   userData: CONF_FILE_DATA.locations[0],    // /datahdd/lxce
   proxies: [
@@ -62,6 +61,11 @@ export const CONTAINER_CONFIG_DEFAULT = {   // save in DEFAULT_CONTAINER_CONF_FI
 
 };
 
+
+// ---------------------------
+// Random names configurations
+// ---------------------------
+import { Config, adjectives, colors, animals } from 'unique-names-generator';
 
 export const NAMES_CONFIG: Config = {
   dictionaries: [adjectives, colors],
