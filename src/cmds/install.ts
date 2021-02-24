@@ -3,8 +3,8 @@ import * as util from "util"
 import yargs from "yargs"
 
 //import * as CONST from "../constants"
-import * as utils from "../utils/util"
-import { BASE_DIR, CONTAINER_CONFIG_DEFAULT, CONF_FILE, CONF_FILE_DATA, DEFAULT_CONTAINER_CONF_FILE } from "../constants"
+import { BASE_DIR, CONTAINER_CONFIG_DEFAULT, CONF_FILE, CONF_FILE_DATA, DEFAULT_CONTAINER_CONF_FILE, SEED_LENGHT, SEED_ENCODING } from "../constants"
+import { writeJSON, generateSeed } from "../utils/util"
 
 
 
@@ -21,13 +21,13 @@ export function cmdInstall(args: yargs.Arguments) {
         fs.mkdirSync(BASE_DIR);
 
         let data = CONF_FILE_DATA;
-        data.seed = utils.generateSeed(8, "hex")
-        fs.writeFileSync(CONF_FILE, JSON.stringify(data, null, 2))
-        console.log("Write: ", CONF_FILE_DATA)
+        data.seed = generateSeed(SEED_LENGHT, SEED_ENCODING)
+        writeJSON(CONF_FILE, data)
+        console.log("Write: ", data)
 
-        fs.writeFileSync(
-            DEFAULT_CONTAINER_CONF_FILE, 
-            JSON.stringify(CONTAINER_CONFIG_DEFAULT, null, 2)
+        writeJSON(
+            DEFAULT_CONTAINER_CONF_FILE,
+            CONTAINER_CONFIG_DEFAULT
         )
         console.log("Write: ", CONTAINER_CONFIG_DEFAULT)
 
@@ -55,7 +55,7 @@ export function cmdInstall(args: yargs.Arguments) {
     console.log("'lxce init' to deploy it.");
     process.exit(0)
 
-} 
+}
 
 
 
