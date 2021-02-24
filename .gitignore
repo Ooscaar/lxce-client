@@ -4,3 +4,4 @@ node_modules
 /etc/
 /datassd/
 /.vscode/
+/src/*.json
