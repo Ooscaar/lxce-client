@@ -176,46 +176,49 @@ const argv = yargs(process.argv.slice(2))
             domain,
         },
     })
-    .command(
-        "delete",
-        "Stop and remove a container, its associated config file and its nginx config",
-        {
+    .command({
+        command: "start",
+        describe: "Start a container that created before",
+        builder: {
+            name, 
+            alias,
+        },
+        handler: cmdStart
+    })
+    .command({
+        command: "stop",
+        describe: "Stop a container",
+        builder: {
+            name,
+            alias,
+        },
+        handler: cmdStop
+    })
+    .command({
+        command: "delete",
+        describe: "Stop and remove a container, its associated config file and its nginx config",
+        builder: {
+            name, 
+            alias
+        },
+        handler: cmdDelete
+    })
+    .command({
+        command: "proxy",
+        describe: "Stop current proxies and generate new ones from config file",
+        builder: {
 
         },
-        cmdDelete
-    )
-    .command(
-        "destroy",
-        "Delete all the resources of the container including it's volumes and it's nginx configurations with their associated certificate",
-        {
+        handler: cmdProxy
+    })
+    .command({
+        command: "destroy",
+        describe: "TODO !!!!!!!!!!!!!",
+        builder: {
 
         },
-        cmdDestroy
-    )
-    .command(
-        "start",
-        "Start a container that created before",
-        {
-
-        },
-        cmdStart
-    )
-    .command(
-        "stop",
-        "Stop a container",
-        {
-
-        },
-        cmdStop
-    )
-    .command(
-        "proxy",
-        "Stop current proxies and generate new ones from config file",
-        {
-
-        },
-        cmdProxy
-    )
+        handler: cmdDestroy
+    })
     .command(
         "pass",
         "Computes the passwords of a container",
