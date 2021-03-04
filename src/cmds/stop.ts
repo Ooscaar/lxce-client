@@ -1,38 +1,99 @@
 import { execSync } from "child_process"
-import { getName } from "../utils/util"
-
+import path from "path"
+import yargs from "yargs"
+import { CONTAINER_CONFIG_DIR } from "../constants"
+import { checkDomain, checkInitialized, getName } from "../utils/util"
+import * as fs from "fs"
 
 
 function stopContainer(name: string) {
-    let cmdStop = `lxc stop ${name}`
+    let cmdStop = `lxc stop ${name} -f`
     let cmdShow = "lxc list"
     try {
         console.log(`[*] Debug: ${cmdStop}`)
         execSync(cmdStop)
         console.log("[*] Container ok !!")
-    } catch(err) {
-        console.error(err.message)
-        process.exit(1)
+    } catch (err) {
+        console.log(err.message)
     }
 }
 
+function checkStop(domain: string) {
 
+    if (!checkInitialized()) {
+        yargs.showHelp()
+        console.log("[*] run lxce init before")
+        process.exit(1)
+    }
+
+    if (domain) {
+        if (!checkDomain(domain)) {
+            yargs.showHelp()
+            console.log("[*] Domain does not exist")
+            process.exit(1)
+        }
+    }
+
+}
+
+// TEMPORAL
+// Start options:
+// lxce stop --global
+// lxce stop --domain default
+// lxce stop --name alice --domain default (alias or name)
 export function cmdStop(args: any) {
 
-    // TODO: redoit with yargs capabilities
-    if (! args.name && ! args.alias) {
+    if (!args.name && !args.global && !args.domain) {
+        yargs.showHelp()
         console.log("[*] Please select at least one option")
         process.exit(1)
     }
-    if (args.name && args.alias) {
-        console.log("[*] Please select name or alias")
-        process.exit(1)
+
+    checkStop(args.domain)
+
+    if (args.global) {
+        console.log("[*] Running global")
+        let domains = fs.readdirSync(CONTAINER_CONFIG_DIR)
+        for (let domain of domains) {
+            for (let containerName of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))) {
+                stopContainer(containerName)
+            }
+
+        }
+        process.exit(0)
     }
 
-    // Start
-    let name: string = getName(args.alias, args.name)
+    if (args.domain && !args.name) {
+        console.log("[*] Running within domain")
 
-    stopContainer(name)
-    process.exit(0)
+        if (!checkDomain(args.domain)) {
+            yargs.showHelp()
+            console.log("[*] Domain does not exist")
+            process.exit(1)
+        }
+
+        for (let containerName of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, args.domain))) {
+            stopContainer(containerName)
+        }
+        process.exit(0)
+
+
+    } else {
+        if (!args.domain) {
+            yargs.showHelp()
+            console.log("[*] Please select the domain")
+            process.exit(1)
+        }
+        if (!checkDomain(args.domain)) {
+            yargs.showHelp()
+            console.log("[*] Domain does not exist")
+            process.exit(1)
+        }
+        console.log("[*] Running only one container")
+        let containerName = getName(args.name, args.domain)
+        stopContainer(containerName)
+        process.exit(0)
+    }
+
 
 }
