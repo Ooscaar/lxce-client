@@ -1,4 +1,4 @@
-
+import { ContainerConfig, LxceConfig } from "./interfaces/interfaces"
 // ------------------------
 // Configurations constants
 // ------------------------
@@ -7,21 +7,29 @@ export const rsa_key_size = 4096
 export const PASSWORD_LENGTH = 10;
 export const SEED_LENGHT = 8
 export const SEED_ENCODING = "hex"
+
+export const MAX_DOMAINS = 10
+export const MAX_CONTAINER_PER_DOMAIN = 100
+export const MAX_PROXIES_PER_CONTAINER = 10
+
+export const UID = 1000
+export const FIRST_PORT = 10000
+
 export const EMAIL = "jose.luis.munoz@upc.edu"; // Email for nginx certificates
-export const BASE_DIR = "/home/alice/workingcopies/tfg-lxce/etc/lxce/";
-// export const BASED_DIR = "/etc/lxce/"
+
+export const BASE_DIR = "/etc/lxce/"
 export const SSH_DIR = BASE_DIR + 'ssh/';
+export const SHARED_FOLDER = "/shared"
 export const NGINX_PATH = "/opt/nginx/"
 export const DOCKER_PATH = "/opt/nginx/docker-volumes/";
 export const CONTAINER_CONFIG_DIR = BASE_DIR + 'container.conf.d/';
 export const DEFAULT_CONTAINER_CONF_FILE = BASE_DIR + 'container_default.conf';
 export const CONF_FILE = BASE_DIR + 'lxce.conf';
-export const CONF_FILE_DATA = {
+export const CONF_FILE_DATA: LxceConfig = {
   "hypervisor":
   {
     "SSH_hostname": "",
     "SSH_suffix": "",
-    "SSH_port": ""
   },
   "seed": "",
   "domains":
@@ -30,13 +38,16 @@ export const CONF_FILE_DATA = {
     ],
   "locations":
     [
-      "/home/alice/workingcopies/tfg-lxce/datassd/",
+      "/datasdd",
+      "/datahdd"
     ],
 };
 
 export const LXCE_DIR = "lxce/";
-export const CONTAINER_CONFIG_DEFAULT = {   // save in DEFAULT_CONTAINER_CONF_FILE
+export const CONTAINER_CONFIG_DEFAULT: ContainerConfig = {   // save in DEFAULT_CONTAINER_CONF_FILE
   alias: "",
+  id_domain: 0,
+  id_container: 0,
   domain: 'default',                        // Domain name for the container
   base: 'ubuntu:20.04',                     // Base name in lxc launch
   userData: CONF_FILE_DATA.locations[0],    // /datahdd/lxce
@@ -65,10 +76,38 @@ export const CONTAINER_CONFIG_DEFAULT = {   // save in DEFAULT_CONTAINER_CONF_FI
 // ---------------------------
 // Random names configurations
 // ---------------------------
-import { Config, adjectives, colors, animals } from 'unique-names-generator';
+import { Config as NamesConfig, adjectives, colors, animals } from 'unique-names-generator';
 
-export const NAMES_CONFIG: Config = {
+export const NAMES_CONFIG: NamesConfig = {
   dictionaries: [adjectives, colors],
   separator: '-',
   length: 2,
 };
+
+
+// ---------------------------
+// Table configurations 
+// ---------------------------
+export const tableConfig = {
+  border: {
+    topBody: `-`,
+    topJoin: `+`,
+    topLeft: `+`,
+    topRight: `+`,
+
+    bottomBody: `-`,
+    bottomJoin: `+`,
+    bottomLeft: `+`,
+    bottomRight: `+`,
+
+    bodyLeft: `|`,
+    bodyRight: `|`,
+    bodyJoin: `|`,
+
+    joinBody: `-`,
+    joinLeft: `+`,
+    joinRight: `+`,
+    joinJoin: `+`
+  },
+}
+
