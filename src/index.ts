@@ -1,4 +1,4 @@
-import yargs, { string, describe } from "yargs";
+import yargs, { string, describe, choices, boolean } from "yargs";
 
 // Commands imports
 // TODO: clean imports
@@ -15,25 +15,34 @@ import { cmdPass } from "./cmds/pass"
 import { cmdShow } from "./cmds/show"
 import { cmdNginx } from "./cmds/nginx"
 import { cmdMan } from "./cmds/man"
+import { cmdList } from "./cmds/list";
 
 
 // ------------------------
 // Command options
 // Need to be declared before yargs parser
 // ------------------------
-const configFile: yargs.Options = {
-    alias: 'c',
-    describe: 'File with the definitions of a container',
-    demand: false,
-    type: 'string',
-    nargs: 1,
-};
 const name: yargs.Options = {
     alias: 'n',
     describe: 'Name of the container',
     demand: false,
     type: 'string',
     nargs: 1,
+};
+
+const nameDemand: yargs.Options = {
+    alias: 'n',
+    describe: 'Name of the container',
+    demand: false,
+    type: 'string',
+    nargs: 1,
+};
+
+const nameArray: yargs.Options = {
+    alias: 'n',
+    describe: 'Names of the containers',
+    demand: false,
+    type: 'array',
 };
 
 const alias: yargs.Options = {
@@ -48,21 +57,22 @@ const quiet: yargs.Options = {
     demand: false,
     type: 'boolean',
 };
-const user: yargs.Options = {
-    alias: 'u',
-    describe: 'User applied to the container',
-    demand: false,
-    default: "user",
-    type: 'string',
-    nargs: 1,
-};
-const domain: yargs.Options = {
+const domainDemand: yargs.Options = {
     alias: 'd',
     describe: 'Domain name for a group of containers',
     demand: true,
     type: 'string',
     nargs: 1,
 };
+
+const domainNoDemand: yargs.Options = {
+    alias: 'd',
+    describe: 'Domain name for a group of containers',
+    demand: false,
+    type: 'string',
+    nargs: 1,
+};
+
 const range: yargs.Options = {
     alias: 'r',
     describe: 'range of containers, e.g. -r 5 ',
@@ -71,6 +81,14 @@ const range: yargs.Options = {
     type: 'number',
     nargs: 1,
 };
+const global: yargs.Options = {
+    alias: "g",
+    describe: "Applied to all containers",
+    demand: false,
+    type: "boolean",
+    nargs: 0
+}
+
 const Range: yargs.Options = {
     alias: 'R',
     describe: 'Range of containers, e.g. -R 0-5 or 0-5',
@@ -152,10 +170,12 @@ const filter: yargs.Options = {
     nargs: 1,
 };
 
+
+
 /******************************************/
 // Command line parsing
 /******************************************/
-const argv = yargs(process.argv.slice(2))
+yargs(process.argv.slice(2))
     .command({
         command: "install",
         describe: "Install config files in default locations",
@@ -169,19 +189,21 @@ const argv = yargs(process.argv.slice(2))
     .command({
         command: "launch",
         describe: "Launch containers from a config file or a domain",
-        handler: cmdLaunch,
         builder: {
-            alias,
+            "names": nameArray,
             range,
-            domain,
+            domain: domainDemand,
         },
+        handler: cmdLaunch,
+
     })
     .command({
         command: "start",
         describe: "Start a container that created before",
         builder: {
-            name, 
-            alias,
+            global,
+            "domain": domainNoDemand,
+            name,
         },
         handler: cmdStart
     })
@@ -189,39 +211,54 @@ const argv = yargs(process.argv.slice(2))
         command: "stop",
         describe: "Stop a container",
         builder: {
+            global,
+            "domain": domainNoDemand,
             name,
-            alias,
         },
         handler: cmdStop
     })
     .command({
         command: "delete",
-        describe: "Stop and remove a container, its associated config file and its nginx config",
+        describe: "Stop and remove a container along it's configuration files",
         builder: {
-            name, 
-            alias
+            name: nameDemand,
+            domain: domainDemand
         },
         handler: cmdDelete
+    })
+    .command({
+        command: "destroy",
+        describe: "NOT IMPLEMENTED",
+        //describe: "Same as delete but also remove read only directories ?????",
+        builder: {
+            name,
+            range,
+            alias,
+
+        },
+        handler: cmdDestroy
     })
     .command({
         command: "proxy",
         describe: "Stop current proxies and generate new ones from config file",
         builder: {
-
+            global,
+            "domain": domainNoDemand,
+            name,
         },
         handler: cmdProxy
     })
     .command({
-        command: "destroy",
-        describe: "TODO !!!!!!!!!!!!!",
+        command: "list",
+        describe: "Temporal list of containers",
         builder: {
-
         },
-        handler: cmdDestroy
+        handler: cmdList
     })
     .command(
         "pass",
-        "Computes the passwords of a container",
+        "NOT IMPLEMENTED",
+        //"Computes the passwords of a container",
         {
 
         },
@@ -229,7 +266,8 @@ const argv = yargs(process.argv.slice(2))
     )
     .command(
         "show",
-        "Show information about containers",
+        "NOT IMPLEMENTED",
+        //"Show information about containers",
         {
 
         },
@@ -237,7 +275,8 @@ const argv = yargs(process.argv.slice(2))
     )
     .command(
         "nginx",
-        "Manage nginx, their confile files and certbot certificates",
+        "NOT IMPLEMENTED",
+        //"Manage nginx, their confile files and certbot certificates",
         {
 
         },
@@ -245,7 +284,8 @@ const argv = yargs(process.argv.slice(2))
     )
     .command(
         "man",
-        "Show manuals and detailed functionalities of the command",
+        "NOT IMPLEMENTED",
+        //"Show manuals and detailed functionalities of the command",
         {
 
         },
@@ -253,8 +293,9 @@ const argv = yargs(process.argv.slice(2))
     )
     .strict()
     .help()
-    .alias('h', 'help')
+    .alias('h', 'help',)
     .alias('v', 'version')
     .help()
     .argv;
+yargs.showHelp()
 
