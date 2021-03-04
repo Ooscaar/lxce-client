@@ -1,238 +1,389 @@
 import * as fs from "fs"
-import { uniqueNamesGenerator } from 'unique-names-generator';
-import yargs, { check } from "yargs"
-import { exec, execSync } from "child_process"
-
-import { DEFAULT_CONTAINER_CONF_FILE, CONF_FILE, SSH_DIR, CONTAINER_CONFIG_DIR, CONF_FILE_DATA, NAMES_CONFIG } from "../constants"
-import { readJSON, writeJSON } from "../utils/util"
 import path from "path";
 import { hostname } from "os";
+import { exec, execSync } from "child_process"
+
+import { uniqueNamesGenerator } from 'unique-names-generator';
+
+import {
+    DEFAULT_CONTAINER_CONF_FILE,
+    CONF_FILE,
+    SSH_DIR,
+    NAMES_CONFIG,
+    LXCE_DIR,
+    CONTAINER_CONFIG_DIR,
+    MAX_CONTAINER_PER_DOMAIN,
+    FIRST_PORT,
+    SHARED_FOLDER
+} from "../constants"
+
+import {
+    checkAcces,
+    checkContainerConfig,
+    checkDefaultConfig,
+    checkInitialized,
+    existAlias,
+    generatePassword,
+    getUserContainer,
+    readContainerConfig,
+    readLxceConfig,
+    writeContainerConfig,
+    writeLxceConfig,
+    writeSSHConfig
+} from "../utils/util"
+
+import {
+    ContainerConfig,
+    LxceConfig,
+    SSH,
+    Proxy
+} from "../interfaces/interfaces"
+
+import { lxcProxy } from "./proxy";
+import yargs from "yargs";
+
+// TODO: document it
+function getPortNumber(id_container: number, id_domain: number, id_proxy: number): number {
+    return FIRST_PORT + id_domain * 1000 + id_container * 10 + id_proxy
+}
+
+function getDomainID(domain: string): number {
+    const lxceConfig = readLxceConfig(CONF_FILE)
+    return lxceConfig.domains.findIndex(elem => elem === domain)
+}
+
+function getContainerID(domain: string): number {
+    // Read all containers id's from a domain
+    let containers_ids: Array<number> = []
+
+    // FIXME: for now, at the time of calling getContainerID
+    // we have not create the domain folder yet
+    // So fs.readdirSync will throw and exception
+    let containers: Array<string>
+    try {
+        containers = fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))
+    } catch (err) {
+        // In this case, simply return first id -> 0
+        return 0
+    }
+
+    // In case folder in empty
+    if (containers.length === 0) {
+        return 0
+    }
+    for (let container of containers) {
+        let containerConfig = readContainerConfig(
+            path.join(CONTAINER_CONFIG_DIR, domain, container)
+        )
+        containers_ids.push(containerConfig.id_container)
+    }
+    containers_ids.sort()
+
+    // Find first hole
+    // ex: [0,1,2,4] -> 3
+    // ex: [1,2,3] -> 0
+    let counter = 0
+    let container_id = 0
+    for (let id of containers_ids) {
+        if (id !== counter) {
+            container_id = counter
+            break
+        }
+        counter += 1
+    }
+    container_id = counter
+    return container_id
+}
 
 
-// Install function
+function sshConfig(ssh: SSH): string {
+    let firstLine = `Host ${ssh.name}.${ssh.domain}.${ssh.suffix}`
+    if (ssh.alias) firstLine += `, ${ssh.alias}.${ssh.domain}.${ssh.suffix}`
+
+    let config = `${firstLine}
+    Hostname ${ssh.hostname}
+    User ${ssh.user}
+    Port ${ssh.port}
+    TCPKeepAlice yes
+    ServerAliveInterval 300`
+
+    //console.log(`[**] debug: ${config}`)
+
+    return config
+}
+
+
+
+
+function checkLaunch(domain: string) {
+    console.log("[*] Initialized")
+    if (!checkInitialized()) {
+        console.log("[*] Exiting ...")
+        process.exit(1)
+    }
+    console.log("[*] Initialized: ok!")
+
+    console.log("[*] Acces")
+    if (!checkAcces()) {
+        console.log("[*] Exiting ...")
+        process.exit(1)
+    }
+    console.log("[*] Acces: ok!")
+
+    if (!checkDefaultConfig()) {
+        console.log("[*] Exiting ...")
+        process.exit(1)
+    }
+
+    if (!checkContainerConfig(DEFAULT_CONTAINER_CONF_FILE)) {
+        console.log("[*] Exiting ...")
+        process.exit(1)
+    }
+
+    // TODO: check domain inside other function
+    if (fs.readdirSync(CONTAINER_CONFIG_DIR).length === MAX_CONTAINER_PER_DOMAIN) {
+        console.log("[**] MAX CONTAINER x DOMAIN used")
+        console.log("[**] Relaunch the container with another domains")
+        process.exit(1)
+    }
+
+    // Adding domain to general conf 
+    // FIXME: should be in another place??
+    let lxceConfig = readLxceConfig(CONF_FILE)
+    if (!lxceConfig.domains.includes(domain)) {
+        lxceConfig.domains.push(domain)
+        writeLxceConfig(CONF_FILE, lxceConfig)
+    }
+
+    console.log("[*] Checks: ok!")
+
+}
+
+function launchContainer(name: string, base: string, seed: string): string {
+    // Launching
+    // ---------
+    try {
+        execSync(`lxc launch ${base} ${name}`)
+        execSync(`lxc exec ${name} -- cloud-init status -w`, { stdio: [process.stdin, process.stdout, process.stderr] })
+
+        let user = getUserContainer(name)
+        let password = generatePassword(seed, name, user)
+        execSync(`lxc exec ${name} -- bash -c "echo ${user}:${password} | chpasswd"`)
+        console.log("[**] Password created:", password)
+        return user
+
+    } catch (err) {
+        console.log(err.message)
+        throw err
+    }
+
+}
+
+function launchConfigurations(name: string, user: string, containerConfig: ContainerConfig, lxceConfig: LxceConfig) {
+    try {
+        // Container.conf.d
+        fs.mkdirSync(path.join(CONTAINER_CONFIG_DIR, containerConfig.domain), { recursive: true })    // fs.writeFile does not create direct.
+        writeContainerConfig(
+            path.join(CONTAINER_CONFIG_DIR, containerConfig.domain, name),
+            containerConfig
+        )
+
+        // SSH.d
+        let ssh: SSH = {
+            name: name,
+            domain: containerConfig.domain,
+            hostname: lxceConfig.hypervisor.SSH_hostname,
+            user: user,
+            port: getPortNumber(
+                containerConfig.id_container,
+                containerConfig.id_domain,
+                containerConfig.proxies.findIndex(elem => elem.name === "ssh")
+            ),
+            suffix: lxceConfig.hypervisor.SSH_suffix,
+            alias: containerConfig.alias
+        }
+        fs.mkdirSync(path.join(SSH_DIR, containerConfig.domain), { recursive: true })
+        writeSSHConfig(
+            path.join(SSH_DIR, containerConfig.domain, name),
+            sshConfig(ssh)
+        )
+
+    } catch (err) {
+        console.log(err.message)
+        throw err
+    }
+
+}
+
+function launchDirectories(name: string, user: string, containerConfig: ContainerConfig) {
+    // Attach read only directories
+    // ----------------------------
+    let domainDir: string = path.join(
+        containerConfig.userData,
+        LXCE_DIR,
+        containerConfig.domain,
+        SHARED_FOLDER
+    )
+    let userDir: string = path.join(
+        containerConfig.userData,
+        LXCE_DIR,
+        containerConfig.domain,
+        name,
+        user
+    )
+    try {
+        fs.mkdirSync(domainDir, { recursive: true })
+        fs.mkdirSync(userDir, { recursive: true })
+
+        // TODO: manage acces to directories
+        //execSync(`chown -R 10000:10000 ${userDir}`)
+        execSync(`lxc config set ${name} raw.idmap "both 10000 1000"`)
+        execSync(`lxc restart ${name}`) //important
+
+        execSync(`lxc config device add ${name} data-${containerConfig.domain} disk source=${domainDir} path="/home/${user}/${SHARED_FOLDER}"`)
+        execSync(`lxc config device add ${name} data-${user} disk source=${domainDir} path="/home/${user}/"`)
+        console.log("[**] read only directories: ok!")
+
+
+    } catch (err) {
+        console.log(err.message)
+        throw err
+
+    }
+}
+
+export function launchProxies(name: string, hostname: string, containerConfig: ContainerConfig) {
+    // Proxies
+    // -------
+    let index = 0
+    for (const proxy of containerConfig.proxies) {
+        let hostPort = getPortNumber(
+            containerConfig.id_container,
+            containerConfig.id_domain,
+            index
+        )
+        lxcProxy(name, hostPort, hostname, proxy)
+        index += 1
+    }
+
+}
+
+function launch(containerConfig: ContainerConfig, lxceConfig: LxceConfig, name: string) {
+    console.log("[**] launching ...")
+    let user = launchContainer(name, containerConfig.base, lxceConfig.seed)
+    console.log("[**] launching: ok!")
+
+    console.log("[**] creating configurations")
+    launchConfigurations(name, user, containerConfig, lxceConfig)
+    console.log("[**] creating configurations: ok!")
+
+    console.log("[**] read only directories")
+    launchDirectories(name, user, containerConfig)
+    console.log("[**] read only directories: ok!")
+
+    console.log("[**] adding proxies")
+    launchProxies(name, lxceConfig.hypervisor.SSH_hostname, containerConfig)
+    // launchProxy()
+    console.log("[**] adding proxies: ok!")
+
+    // TODO
+    // launchGit()
+}
+
+// Command launch
 export function cmdLaunch(args: any) {
 
-    try {
-
-        // Match alias with containers
-        if (args.alias) {
-            if (args.alias.length != args.range) {
-                console.log("Number of alias does not match number of containers")
-                process.exit(1)
-            }
-
-            // TODO: change names of alias to distinguish plural
-            if (!checkAlias(args.alias)) {
-                console.log("[*] Alias already used")
-                process.exit(1)
-            }
-
-        }
-
-        if (!checkInit()) {
-            console.log("Some init not correctly")
-            console.log("TODO: output nicely")
+    // Match alias with containers
+    // Names ---> alias!!
+    // CAUTION: Names: Array<String>
+    if (args.names) {
+        if (args.names.length != args.range) {
+            yargs.showHelp()
+            console.log("")
+            console.log("Number of names does not match number of containers")
             process.exit(1)
         }
 
-        // TODO: check customConfig parameters
-        // readJSONConfig
-        console.log("[*] Reading configuration for container")
-        const configContainer = readJSON(DEFAULT_CONTAINER_CONF_FILE)
-        const configLXCE = readJSON(CONF_FILE)
-        console.log("[\u2713] Reading configuration for container")
+        if (existAlias(args.names, args.domain)) {
+            yargs.showHelp()
+            process.exit(1)
+        }
+    }
 
-        // Works for any configuration, as args. not given are set
-        // to "undefined"
+    console.log("[*] --------------------------------------------------------------")
+    console.log("[*] Checkings")
+    checkLaunch(args.domain)
+    console.log("[*] --------------------------------------------------------------")
+
+
+    // Works for any configuration because args. not given are set
+    // to "undefined"
+    // const configContainer = readJSON(DEFAULT_CONTAINER_CONF_FILE)
+    // const configLXCE = readJSON(CONF_FILE)
+    try {
+        const lxceConfig = readLxceConfig(CONF_FILE)
+
         for (let i = 0; i < args.range; i++) {
             let name: string = uniqueNamesGenerator(NAMES_CONFIG)
+
+            // In order to have a copy of the object
+            let containerConfig = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
+
+            containerConfig.alias = args.names ? args.names[i] : ""
+            containerConfig.domain = args.domain
+            containerConfig.id_domain = getDomainID(args.domain)
+            containerConfig.id_container = getContainerID(args.domain)
+
             console.log("[*] Launching container with", name)
-            launch(configContainer, configLXCE, name, args.domain, args.alias[i])
+            launch(containerConfig, lxceConfig, name)
             console.log("[\u2713] Launching container with", name)
         }
-        console.log("[*] -------------------")
+
+        console.log("[*] --------------------------------------------------------------")
         console.log("[*] Succes!!")
         process.exit(0)
 
     } catch (err) {
-        console.error(err)
-    }
-}
-
-// Check is everything is initialized
-// (i.e: lxce init ejecuted before)
-// and throws exceptions if we don't have permissions
-function checkInit(): boolean {
-    try {
-        console.log("[*] -------------------")
-        console.log("[*] Checking configurations ...")
-        if (!fs.existsSync(DEFAULT_CONTAINER_CONF_FILE)) return false
-        if (!fs.existsSync(CONF_FILE)) return false
-        if (!fs.existsSync(SSH_DIR)) return false
-        if (!fs.existsSync(CONTAINER_CONFIG_DIR)) return false
-        console.log("[\u2713] Checking configurations: ok!")
-
-        // TODO: Check:
-        // [x]: locations
-        // [x]: base
-        // [ ]: domain?
-        console.log("[*] Checking locations ...")
-        const confLxce = readJSON(CONF_FILE)
-        console.log("[*] debug:", confLxce)
-        for (const loc of confLxce.locations) {
-            if (!fs.existsSync(loc)) return false
-        }
-        console.log("[\u2713] Checking locations: ok!")
-
-        console.log("[*] Checking base ...")
-        const confContainer = readJSON(DEFAULT_CONTAINER_CONF_FILE)
-        const base = confContainer.base
-        // TODO: temporal
-        // If command fails will throw exception
-        let command = `lxc image list ${base} `
-        const output = execSync(command)
-        console.log("[\u2713] Checking base: ok!")
-        console.log("[*] -------------------")
-
-        return true
-
-    } catch (err) {
-        throw err
-    }
-}
-
-function checkAlias(aliases: Array<string>): boolean {
-    let existingAlias: Array<string> = []
-    try {
-        const dirCont = fs.readdirSync(CONTAINER_CONFIG_DIR)
-
-        for (const file of dirCont) {
-            // It return relative paths
-            let filePath = path.join(CONTAINER_CONFIG_DIR, file)
-            let configFile = readJSON(filePath)
-            existingAlias.push(configFile.alias)
-        }
-
-        for (const alias of aliases) {
-            if (existingAlias.includes(alias)) {
-                console.log(`[**] alias:${alias} already used`)
-                return false
-            }
-        }
-
-        return true
-
-    } catch (err) {
-        throw err
+        console.error(err.message)
+        process.exit(1)
     }
 
 }
 
-// Launch will:
-// [ ]- Launch container with (lxc launch ...)
-//   ---> @param name container
-// [ ]- Attach read only directories
-//    - and create directories in host
-//   ---> @param domain
-// [ ] - Create ssh configuration files
-// [ ] - Nginx ?
-// [ ] - Create git repository
-// [ ] - Certificates ?
-function launch(configContainer: any, configLXCE: any, name: string, domain: string, alias?: string) {
-    console.log("[**] domain:", domain)
-    console.log(`[**] name:${name}`)
-    if (alias) console.log("[**] alias:", alias)
-
-    try {
-
-        // Launch
-        // execSync(
-        //     `lxc launch ${configContainer.base} ${name}`,
-        //     { stdio: [process.stdin, process.stdout, process.stderr] }
-        // )
-
-        // Generate and change password of existing user
-        let user = ""
-
-        // Directories
-        fs.mkdirSync(path.join(configContainer.userData, "lxce", domain, name), { recursive: true })
-
-        // Ssh .config
-        fs.mkdirSync(path.join(SSH_DIR, configContainer.domain))    // fs.writeFile does not create direct.
-        let fileName = alias ?? name
-        fs.writeFileSync(
-            path.join(SSH_DIR, domain, fileName),
-            sshConfig(
-                name,
-                domain,
-                configLXCE.hypervisor.SSH_hostname,
-                user,
-                configLXCE.hypervisor.SSH_port,
-                configLXCE.hypervisor.SSH_suffix,
-                alias
-            )
-        )
-
-    } catch (err) {
-        // TODO: should remove all configurations generated in case
-        //       of error
-        console.error("launch (error): check permissions")
-        throw err
-
-    }
-
-    // Directories
-
-    // Commands (launch)
-    // -----------------
-    // $: lxc launch ${base} ${name}
-    // $: lxc exec ${name} --bash -c  \
-    //    "useradd -u 1000 -m -G sudo -s /bin/bash ${user}
-    //   -m: creates home directory
-    //   -G: add group
-    //   -s: select default bash
-    //
-    // $: mkdir -p ${dir}
-    // $: chown -R 10000:10000 ${dir}
-    // $: lxc config set ${name} raw.idmap "both 10000 1000"
-    // $: lxc config device add data-${user} disck source=${data} \
-    //    path="home/${user}/${data...}"
-    //
-    // $: mkdir -p /datassd/lxce/${config.domain}
-    //
-    // Command (proxies)
-    // ----------------
-    // $: lxc config device add ${name} proxy-${proxy.name} proxy \
-    //    listen=${proxy.type}:${proxy.listen}:${proxy} ...       \
-    //    connect=${proxy.type}:${ip}:${port}
-    //
-    // Command (ssh)
-    // -------------
-    // '  Host ' + config.id + '.' + config.domain + '.' + conf_file.hypervisor.SSH_suffix + '  \n' +
-    // '  HostName ' + conf_file.hypervisor.SSH_hostname + ' \n' +
-    // '  User alice\n' +
-    // '  Port ' + DI + config.id + portSSH + '\n' +
-    // '  TCPKeepAlive yes \n' +
-    // '  ServerAliveInterval 300 \n', 'utf8');
-    //
-    // Command (git)
-    // -------------
-    // $: git -C ${SSH_DIR}/lxce add ${SSH_DIR}/lxce/*
-    // $: git -C ${SSH_DIR}/lxce commit -am "${name}: created"
-}
-
-function sshConfig(name: string, domain: string, hostname: string, user: string, port: string, suffix: string, alias?: string): string {
-    let firstLine = `Host ${name}.${domain}.${suffix}`
-    if (alias) firstLine += `, ${alias}`
-
-    let ssh = `${firstLine} \n
-        Hostname ${hostname}
-        User ${user}
-        Port ${port}
-        TCPKeepAlice yes
-        ServerAliveInterval 300`
-
-    console.log(`[**] debug: ${ssh}`)
-
-    return ssh
-}
+// ------------------------------------------------------------------------------------
+// Commands (launch)
+// ------------------------------------------------------------------------------------
+// $: lxc launch ${base} ${name}
+// $: lxc exec ${name} --bash -c  \
+//    "useradd -u 1000 -m -G sudo -s /bin/bash ${user}
+//   -m: creates home directory
+//   -G: add group
+//   -s: select default bash
+//
+// $: mkdir -p ${dir}
+// $: chown -R 10000:10000 ${dir}
+// $: lxc config set ${name} raw.idmap "both 10000 1000"
+// $: lxc config device add data-${user} disck source=${data} \
+//    path="home/${user}/${data...}"
+//
+// $: mkdir -p /datassd/lxce/${config.domain}
+//
+// Command (proxies)
+// ----------------
+// $: lxc config device add ${name} proxy-${proxy.name} proxy \
+//    listen=${proxy.type}:${proxy.listen}:${proxy} ...       \
+//    connect=${proxy.type}:${ip}:${port}
+//
+// Command (ssh)
+// -------------
+// '  Host ' + config.id + '.' + config.domain + '.' + conf_file.hypervisor.SSH_suffix + '  \n' +
+// '  HostName ' + conf_file.hypervisor.SSH_hostname + ' \n' +
+// '  User alice\n' +
+// '  Port ' + DI + config.id + portSSH + '\n' +
+// '  TCPKeepAlive yes \n' +
+// '  ServerAliveInterval 300 \n', 'utf8');
+//
+// Command (git)
+// -------------
+// $: git -C ${SSH_DIR}/lxce add ${SSH_DIR}/lxce/*
+// $: git -C ${SSH_DIR}/lxce commit -am "${name}: created"
