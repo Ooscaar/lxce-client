@@ -1,99 +1,92 @@
 import * as fs from "fs"
 import * as util from "util"
 import yargs from "yargs"
-import { exec } from "child_process"
+import { exec, execSync } from "child_process"
 
-import { CONF_FILE_DATA, CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, SSH_DIR } from "../constants"
-import { readJSON } from "../utils/util"
+import { CONF_FILE_DATA, CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, SSH_DIR, CONTAINER_CONFIG_DEFAULT, BASE_DIR } from "../constants"
+import { checkAcces, checkContainerConfig, checkDefaultConfig } from "../utils/util"
 
+// Check if init has already been initialized
+// and in negative case, check is the default
+// configurations are correct
+// Then checkAccess to the directories, as write
+// actions will be executed
+function checkInit() {
 
-
-// Init function
-// TODO: rewrite it with functions
-export function cmdInit(args: yargs.Arguments) {
-    try {
-
-        // Check already configured
-        if (! fs.existsSync(CONF_FILE)) {
-            console.log("The configuration file at: %s is not available. ", CONF_FILE);
-            console.log("run lxce install");
-            process.exit(1);
-        }
-
-        if (! fs.existsSync(DEFAULT_CONTAINER_CONF_FILE)) {
-            console.log(
-                "The configuration file at: %s is not available. ",
-                DEFAULT_CONTAINER_CONF_FILE);
-            console.log("run lxce install");
-            process.exit(1);
-        }
-
-        if (fs.existsSync(CONTAINER_CONFIG_DIR)) {
-            console.log("The configuration directory exist at: " + CONTAINER_CONFIG_DIR);
-            console.log("If you want to use init, you should destroy everything that is available.");
-            console.log('Use "lxce destroy" before install & init.');
-            process.exit(1);
-        }
-
-        // Check configuration file paramaters
-        const confFile = readJSON(CONF_FILE)
-        console.log(confFile)
-
-        // TODO: check the locations or write directly
-        // Here or in launch ???
-        // and manager the error
-        for (const loc of confFile.locations) {
-            if (! fs.existsSync(loc)) {
-                //throw Error("Locations not available")
-                console.log("Location not available")
-                console.log(loc)
-                console.log("Check locations or permissions")
-                process.exit(1)
-            }
-        }
-
-        if (confFile.hypervisor.SSH_hostname == "") {
-          console.log("SSH_hostname has not set in: %s")
-          console.log("Edit the %s and run 'lxce init' again", CONF_FILE)
-          process.exit(1)
-        }
-
-        if (confFile.hypervisor.SSH_suffix == "") {
-            console.log("SSH suffic has not been set")
-            console.log("Edit the %s and run 'lxce init' again", CONF_FILE)
-            process.exit(1)
-        }
-
-        // Initialize the parameters
-        // In case we don't have permissions an exceptions is thrown
-        fs.mkdirSync(CONTAINER_CONFIG_DIR);
-        console.log("[*] mkdir: container_conf_dir")
-        fs.mkdirSync(SSH_DIR);
-        console.log("[*] mkdir: ssh_dir")
-
-        // TODO: Git repository creation
-
-
-
-        console.log("Good!")
-        process.exit(0)
-
-    } catch(err) {
-        // TODO: in case of error, remove files?
-        if (err.code == "EACCES") {
-            console.error(err.message)
-            console.error(err.syscall)
-            console.error(err.path)
-            process.exit(1)
-        }
-        console.error(err.message)
-
+    // Checking one folder creations is enought
+    if (fs.existsSync(CONTAINER_CONFIG_DIR)) {
+        console.log("[**] Configurations folders detected")
+        console.log("[**] If you want to use init, you should use")
+        console.log("[**] lxce destroy")
+        console.log("[*] Exiting ...")
+        process.exit(1)
     }
+
+    if (!fs.existsSync(CONF_FILE) || !fs.existsSync(DEFAULT_CONTAINER_CONF_FILE)) {
+        console.log("[**] Configurations files missing")
+        console.log("[**] run lxce install")
+        process.exit(1)
+    }
+
+    console.log("[*] checking permissions")
+    try {
+        fs.accessSync(BASE_DIR, fs.constants.W_OK)
+    } catch (err) {
+        console.log("[*] checking permissions: fail!")
+        process.exit(1)
+    }
+    console.log("[*] checking permissions: ok!")
+
+    console.log("[*] checking configurations")
+    if (!checkDefaultConfig()) {
+        console.log("[*] checking configurations: fail!")
+        process.exit(1)
+    }
+
+    if (!checkContainerConfig(DEFAULT_CONTAINER_CONF_FILE)) {
+        console.log("[*] checking configurations: fail!")
+        process.exit(1)
+    }
+    console.log("[*] checking configurations: ok!")
+
+}
+
+function init() {
+
+    fs.mkdirSync(CONTAINER_CONFIG_DIR);
+    console.log("[*] mkdir: container_conf_dir")
+
+    fs.mkdirSync(SSH_DIR);
+    console.log("[*] mkdir: ssh_dir")
+
+    // TODO: init git repository
+    let command = `git init ${SSH_DIR}`
+    try {
+        execSync(command)
+
+    } catch (err) {
+        console.log("[*] Error creating git repository")
+        console.log("[*] Make sure you have git --system configured:")
+        console.log("[*] git config --global -e")
+        console.log("[*] And git init manually", SSH_DIR)
+        process.exit(1)
+    }
+    console.log("[*] git init: ssh_dir")
+
 }
 
 
-async function checkSSH() {}
+// Init function
+export function cmdInit(args: yargs.Arguments) {
+    checkInit()
 
-async function checkLocations() {}
+    init()
 
-async function init() {}
+    console.log("[*] Good!!")
+    process.exit(0)
+
+}
+
+
+
+
