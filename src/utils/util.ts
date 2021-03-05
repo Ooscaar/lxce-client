@@ -1,4 +1,4 @@
-import { execSync } from "child_process"
+import { exec, execSync } from "child_process"
 import * as crypto from "crypto"
 import * as fs from "fs"
 import path from "path"
@@ -194,7 +194,7 @@ export function getName(argsName: string, domain: string): string {
         return getNamefromAlias(argsName, domain)
     }
 
-    if (!existName(argsName)) {
+    if (!existName(argsName, domain)) {
         yargs.showHelp()
         console.log("[*] Name does not exist")
         process.exit(1)
@@ -325,6 +325,7 @@ export function checkDomain(domain: string): boolean {
 function checkBase(base: string): boolean {
     try {
         let command = `lxc image ${base}`
+        execSync(command)
         return true
     } catch (err) {
         console.log("[**] base does not exist")
@@ -418,8 +419,8 @@ export function existAlias(argAlias: string | Array<string>, domain: string): bo
 }
 
 
-export function existName(name: string): boolean {
-    const locations = fs.readdirSync(CONTAINER_CONFIG_DIR)
+export function existName(name: string, domain: string): boolean {
+    const locations = fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))
     return locations.includes(name)
 }
 
@@ -446,6 +447,28 @@ export function lxcDelete() {
 
 }
 
+// Perfoms dns resolution inside container
+// to check if *.lxd is working
+// Expected result:
+// awful-yellow.lxd has address 10.10.0.212
+// awful-yellow.lxd has IPv6 address fd42:7c8c:7fab:4125:216:3eff:fe4d:1c95 
+export function lxdDNS(name: string) {
+    try {
+        let resolve = execSync(`lxc exec ${name} -- bash -c "host ${name}.lxd"`)
+            .toString()
+            .split("\n")[0]
+            .split(" ")[3]
+        console.log(`[**] dns resolution: ${name}.lxd -> ${resolve}`)
+    } catch (err) {
+        console.log("[**] WARNING: DNS resolutions not working")
+    }
+
+}
+
+export function lxcExec() {
+
+}
+
 export function lxdRestart() {
 
 }
@@ -463,5 +486,22 @@ export function lxdDeviceRemove() {
 }
 
 export function lxcDeviceList() {
+
+}
+
+
+// --------------------------------------------------------  //
+// ******************** Git helper functions *************** //
+// --------------------------------------------------------  //
+export function gitInit() {
+
+
+}
+
+export function gitCommit() {
+
+}
+
+export function gitPull() {
 
 }
