@@ -25,6 +25,7 @@ import {
     existAlias,
     generatePassword,
     getUserContainer,
+    lxdDNS,
     readContainerConfig,
     readLxceConfig,
     writeContainerConfig,
@@ -43,7 +44,7 @@ import { lxcProxy } from "./proxy";
 import yargs from "yargs";
 
 // TODO: document it
-function getPortNumber(id_container: number, id_domain: number, id_proxy: number): number {
+export function getPortNumber(id_container: number, id_domain: number, id_proxy: number): number {
     return FIRST_PORT + id_domain * 1000 + id_container * 10 + id_proxy
 }
 
@@ -263,6 +264,7 @@ export function launchProxies(name: string, hostname: string, containerConfig: C
             index
         )
         lxcProxy(name, hostPort, hostname, proxy)
+        // Check also if dns resolutions is working
         index += 1
     }
 
@@ -285,6 +287,9 @@ function launch(containerConfig: ContainerConfig, lxceConfig: LxceConfig, name: 
     launchProxies(name, lxceConfig.hypervisor.SSH_hostname, containerConfig)
     // launchProxy()
     console.log("[**] adding proxies: ok!")
+
+    // Temporal
+    lxdDNS(name)
 
     // TODO
     // launchGit()
