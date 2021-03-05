@@ -55,6 +55,7 @@ function deleteConfigurations(name: string, domain: string) {
         ))
         fs.unlinkSync(path.join(
             SSH_DIR,
+            domain,
             name
         ))
         console.log("[*] Related conf and folders deleted")
