@@ -1,8 +1,8 @@
 import { execSync } from "child_process"
 import path from "path"
 import { CONF_FILE, CONTAINER_CONFIG_DIR } from "../constants"
-import { checkAcces, checkDomain, checkInitialized, getName, readContainerConfig, readJSON, readLxceConfig } from "../utils/util"
-import { Proxy } from "../interfaces/interfaces"
+import { checkAcces, checkDomain, checkInitialized, getName, lxdDNS, readContainerConfig, readJSON, readLxceConfig } from "../utils/util"
+import { ContainerConfig, Proxy } from "../interfaces/interfaces"
 import yargs from "yargs"
 import * as fs from "fs"
 import { launchProxies } from "./launch"
@@ -85,6 +85,13 @@ function checkProxy(domain: string) {
 
 }
 
+// Actions required for cmdProxy on each container
+function proxy(name: string, hostname: string, containerConfig: ContainerConfig) {
+    removeProxies(name)
+    launchProxies(name, hostname, containerConfig)
+    lxdDNS(name)
+}
+
 export function cmdProxy(args: any) {
 
     if (!args.name && !args.global && !args.domain) {
@@ -103,8 +110,7 @@ export function cmdProxy(args: any) {
             for (let containerName of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))) {
                 let containerPath = path.join(CONTAINER_CONFIG_DIR, domain, containerName)
                 let containerConfig = readContainerConfig(containerPath)
-                removeProxies(containerName)
-                launchProxies(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
+                proxy(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
             }
 
         }
@@ -117,8 +123,7 @@ export function cmdProxy(args: any) {
         for (let containerName of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, args.domain))) {
             let containerPath = path.join(CONTAINER_CONFIG_DIR, args.domain, containerName)
             let containerConfig = readContainerConfig(containerPath)
-            removeProxies(containerName)
-            launchProxies(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
+            proxy(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
         }
         process.exit(0)
 
@@ -137,8 +142,8 @@ export function cmdProxy(args: any) {
         let containerName = getName(args.name, args.domain)
         let containerPath = path.join(CONTAINER_CONFIG_DIR, args.domain, containerName)
         let containerConfig = readContainerConfig(containerPath)
-        removeProxies(containerName)
-        launchProxies(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
+        proxy(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
+
         process.exit(0)
     }
 
