@@ -292,6 +292,8 @@ yargs(process.argv.slice(2))
         cmdMan
     )
     .strict()
+    .demandCommand()
+    .completion()
     .help()
     .alias('h', 'help',)
     .alias('v', 'version')
