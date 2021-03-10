@@ -96,10 +96,11 @@ function getContainerID(domain: string): number {
     return container_id
 }
 
-
+// Return ssh config file 
 function sshConfig(ssh: SSH): string {
-    let firstLine = `Host ${ssh.name}.${ssh.domain}.${ssh.suffix}`
-    if (ssh.alias) firstLine += `, ${ssh.alias}.${ssh.domain}.${ssh.suffix}`
+    let firstLine = `Host ${ssh.suffix}${ssh.name}.${ssh.domain}`
+    // Adding one space !!
+    if (ssh.alias) firstLine += ` ${ssh.suffix}${ssh.alias}.${ssh.domain}`
 
     let config = `${firstLine}
     Hostname ${ssh.hostname}
@@ -219,30 +220,39 @@ function launchConfigurations(name: string, user: string, containerConfig: Conta
 function launchDirectories(name: string, user: string, containerConfig: ContainerConfig) {
     // Attach read only directories
     // ----------------------------
+    // /dataxx/lxce/domain
     let domainDir: string = path.join(
         containerConfig.userData,
         LXCE_DIR,
         containerConfig.domain,
         SHARED_FOLDER
     )
-    let userDir: string = path.join(
+    // /dataxdd/lxce/domain/containerName
+    let containerDir: string = path.join(
         containerConfig.userData,
         LXCE_DIR,
         containerConfig.domain,
         name,
-        user
     )
     try {
         fs.mkdirSync(domainDir, { recursive: true })
-        fs.mkdirSync(userDir, { recursive: true })
+        fs.mkdirSync(containerDir, { recursive: true })
 
         // TODO: manage acces to directories
         //execSync(`chown -R 10000:10000 ${userDir}`)
         execSync(`lxc config set ${name} raw.idmap "both 10000 1000"`)
         execSync(`lxc restart ${name}`) //important
 
-        execSync(`lxc config device add ${name} data-${containerConfig.domain} disk source=${domainDir} path="/home/${user}/${SHARED_FOLDER}"`)
-        execSync(`lxc config device add ${name} data-${user} disk source=${domainDir} path="/home/${user}/"`)
+        // Add user and domain directories
+        // - /dataxx/lxce/domain/container -> /home/user/data
+        // - /dataxx/lxce/domain/shared    -> /home/user/data-domain
+
+        // TODO: implement lxdDevice util function
+        const domain = containerConfig.domain
+        execSync(`lxc config device add ${name} data-${domain} disk source=${domainDir} path="/home/${user}/data-${domain}"`)
+        execSync(`lxc config device add ${name} data-${name} disk source=${domainDir} path="/home/${user}/data"`)
+        console.log(`[**] added data-${domain} shared folder`)
+        console.log(`[**] added data-${name} shared folder`)
         console.log("[**] read only directories: ok!")
 
 
