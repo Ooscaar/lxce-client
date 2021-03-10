@@ -41,7 +41,7 @@ import {
 } from "../interfaces/interfaces"
 
 import { lxcProxy } from "./proxy";
-import yargs from "yargs";
+import yargs, { string } from "yargs";
 
 // TODO: document it
 export function getPortNumber(id_container: number, id_domain: number, id_proxy: number): number {
@@ -355,40 +355,36 @@ export function cmdLaunch(args: any) {
 
 }
 
-// ------------------------------------------------------------------------------------
-// Commands (launch)
-// ------------------------------------------------------------------------------------
-// $: lxc launch ${base} ${name}
-// $: lxc exec ${name} --bash -c  \
-//    "useradd -u 1000 -m -G sudo -s /bin/bash ${user}
-//   -m: creates home directory
-//   -G: add group
-//   -s: select default bash
-//
-// $: mkdir -p ${dir}
-// $: chown -R 10000:10000 ${dir}
-// $: lxc config set ${name} raw.idmap "both 10000 1000"
-// $: lxc config device add data-${user} disck source=${data} \
-//    path="home/${user}/${data...}"
-//
-// $: mkdir -p /datassd/lxce/${config.domain}
-//
-// Command (proxies)
-// ----------------
-// $: lxc config device add ${name} proxy-${proxy.name} proxy \
-//    listen=${proxy.type}:${proxy.listen}:${proxy} ...       \
-//    connect=${proxy.type}:${ip}:${port}
-//
-// Command (ssh)
-// -------------
-// '  Host ' + config.id + '.' + config.domain + '.' + conf_file.hypervisor.SSH_suffix + '  \n' +
-// '  HostName ' + conf_file.hypervisor.SSH_hostname + ' \n' +
-// '  User alice\n' +
-// '  Port ' + DI + config.id + portSSH + '\n' +
-// '  TCPKeepAlive yes \n' +
-// '  ServerAliveInterval 300 \n', 'utf8');
-//
-// Command (git)
-// -------------
-// $: git -C ${SSH_DIR}/lxce add ${SSH_DIR}/lxce/*
-// $: git -C ${SSH_DIR}/lxce commit -am "${name}: created"
+
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "launch"
+
+export const describe = "Launch containers from a specific domain"
+
+export const handler = cmdLaunch
+
+export const builder = {
+    "names": {
+        alias: 'n',
+        describe: 'Names/name of the containers/container',
+        demand: false,
+        type: 'array',
+    },
+    "domain": {
+        alias: "d",
+        describe: "Domain for the container",
+        demand: true,
+        type: string,
+        nargs: 1
+    },
+    "range": {
+        alias: "r",
+        describe: "range of container (ex: -r 5)",
+        demand: false,
+        type: "number",
+        default: 1,
+        nargs: 1
+    }
+}

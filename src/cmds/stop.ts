@@ -41,7 +41,7 @@ function checkStop(domain: string) {
 // lxce stop --global
 // lxce stop --domain default
 // lxce stop --name alice --domain default (alias or name)
-export function cmdStop(args: any) {
+function cmdStop(args: any) {
 
     if (!args.name && !args.global && !args.domain) {
         yargs.showHelp()
@@ -96,4 +96,39 @@ export function cmdStop(args: any) {
     }
 
 
+}
+
+
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "stop"
+
+export const describe = "Stop containers"
+
+export const handler = cmdStop
+
+
+export const builder = {
+    "global": {
+        alias: "g",
+        describe: "Apply to all containers",
+        demand: false,
+        type: "boolean",
+        nargs: 0
+    },
+    "domain": {
+        alias: 'd',
+        describe: 'Domain name for a group of containers',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
+    "name": {
+        alias: 'n',
+        describe: 'Container name',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    }
 }

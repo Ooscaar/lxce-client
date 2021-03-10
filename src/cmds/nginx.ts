@@ -3,8 +3,18 @@ import yargs from "yargs"
 
 
 // Install function
-export async function cmdNginx(args: yargs.Arguments) {
+function cmdNginx(args: yargs.Arguments) {
 
     console.log("Not implemented")
     process.exit(1)
 }
+
+
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "nginx"
+
+export const describe = "NOT IMPLEMENTED"
+
+export const handler = cmdNginx

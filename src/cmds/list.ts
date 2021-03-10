@@ -40,7 +40,7 @@ function getContainerJSON(name: string, domain: string): any {
     }
 }
 
-export function cmdList(args: any) {
+function cmdList(args: any) {
 
     // Get info from all containers
     let data: Array<any> = [["NAME", "ALIAS", "DOMAIN", "STATE", "Ipv4", "PORTS"]]
@@ -62,4 +62,22 @@ export function cmdList(args: any) {
     process.exit(0)
 
 
+}
+
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "list"
+
+export const describe = "List containers properties"
+
+export const handler = cmdList
+
+export const builder = {
+    "format": {
+        alias: "f",
+        describe: "Values to show",
+        type: "array",
+        required: false
+    }
 }

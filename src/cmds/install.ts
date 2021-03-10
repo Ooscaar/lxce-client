@@ -1,21 +1,20 @@
 import * as fs from "fs"
-import * as util from "util"
 import yargs from "yargs"
 
 //import * as CONST from "../constants"
 import { BASE_DIR, CONTAINER_CONFIG_DEFAULT, CONF_FILE, CONF_FILE_DATA, DEFAULT_CONTAINER_CONF_FILE, SEED_LENGHT, SEED_ENCODING } from "../constants"
-import { ContainerConfig, LxceConfig } from "../interfaces/interfaces"
-import { writeJSON, generateSeed, writeContainerConfig, writeLxceConfig } from "../utils/util"
+import { LxceConfig } from "../interfaces/interfaces"
+import { generateSeed, writeContainerConfig, writeLxceConfig } from "../utils/util"
 
 
 
 // Install function
-export function cmdInstall(args: yargs.Arguments) {
+function cmdInstall(args: yargs.Arguments) {
     try {
         if (fs.existsSync(BASE_DIR)) {
             console.log("[*] The base directory exist at: " + BASE_DIR)
             console.log("[*] If you want to use install, you should destroy everything that is available.")
-            console.log("[*] Use lxce destroy before install.")
+            console.log("[*] Use lxce uninstall before install.")
             process.exit(1)
         }
 
@@ -23,23 +22,16 @@ export function cmdInstall(args: yargs.Arguments) {
 
         let data: LxceConfig = CONF_FILE_DATA;
         data.seed = generateSeed(SEED_LENGHT, SEED_ENCODING)
-        //writeJSON(CONF_FILE, data)
+        // Write configurations from default values
         writeLxceConfig(
             CONF_FILE,
             data
         )
-        console.log("Write: ", data)
-
-        // writeJSON(
-        //     DEFAULT_CONTAINER_CONF_FILE,
-        //     CONTAINER_CONFIG_DEFAULT
-        // )
 
         writeContainerConfig(
             DEFAULT_CONTAINER_CONF_FILE,
             CONTAINER_CONFIG_DEFAULT
         )
-        console.log("Write: ", CONTAINER_CONFIG_DEFAULT)
 
     } catch (err) {
         // TODO: manage the errors, as we will have:
@@ -67,7 +59,12 @@ export function cmdInstall(args: yargs.Arguments) {
     process.exit(0)
 
 }
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "install"
 
+export const describe = "Install configuration files in default locations"
 
-
+export const handler = cmdInstall
 

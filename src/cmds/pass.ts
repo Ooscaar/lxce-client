@@ -3,8 +3,16 @@ import yargs from "yargs"
 
 
 // Install function
-export async function cmdPass(args: yargs.Arguments) {
+function cmdPass(args: yargs.Arguments) {
     console.log("Not implemented")
     process.exit(1)
 
 }
+
+
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "pass"
+export const describe = "Compute password from containers"
+export const handler = cmdPass

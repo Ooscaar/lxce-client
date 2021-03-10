@@ -77,7 +77,7 @@ function init() {
 
 
 // Init function
-export function cmdInit(args: yargs.Arguments) {
+function cmdInit(args: yargs.Arguments) {
     checkInit()
 
     init()
@@ -88,5 +88,13 @@ export function cmdInit(args: yargs.Arguments) {
 }
 
 
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "init"
+
+export const describe = "Init configuration files with default values"
+
+export const handler = cmdInit
 
 

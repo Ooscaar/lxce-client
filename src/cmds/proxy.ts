@@ -92,7 +92,7 @@ function proxy(name: string, hostname: string, containerConfig: ContainerConfig)
     lxdDNS(name)
 }
 
-export function cmdProxy(args: any) {
+function cmdProxy(args: any) {
 
     if (!args.name && !args.global && !args.domain) {
         yargs.showHelp()
@@ -148,4 +148,38 @@ export function cmdProxy(args: any) {
     }
 
 
+}
+
+
+// ---------------------
+// Yargs command options
+// ---------------------
+export const command = "proxy"
+
+export const describe = "Delete and restart proxies based on configuration files"
+
+export const handler = cmdProxy
+
+export const builder = {
+    "global": {
+        alias: "g",
+        describe: "Apply to all containers",
+        demand: false,
+        type: "boolean",
+        nargs: 0
+    },
+    "domain": {
+        alias: 'd',
+        describe: 'Domain name for a group of containers',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
+    "name": {
+        alias: 'n',
+        describe: 'Container name',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    }
 }
