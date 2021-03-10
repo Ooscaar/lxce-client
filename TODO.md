@@ -4,21 +4,28 @@
 ---------------------------------------------------------------------------
 ### General
 - [ ] Add logger with loglevel specified (i.e: ability to run --debug|--verbose)
+      or just use [yargs-log-example](https://github.com/yargs/yargs/blob/0175677b79ffe50a9c5477631288ae10120b8a32/example/count.js#L9)
 - [ ] Manage throws and errors differently. Maybe throw and exit and just print
-       the error message (look example repository) 
-- [ ] With yargs, create command with options/choices 
-       (i.e: launch <--get-name | --global>)
-- [ ] Add two different completions scripts (completion.zsh and completion.extra.zsh)
+       the error message (look example repository). Or use yargs.fail()
+- [ ] ~~With yargs, create command with options/choices
+       (i.e: launch <--get-name | --global>)~~
+- [x] Add two different completions scripts (completion.zsh and completion.extra.zsh)
 - [ ] Modify README and add a "development guide" 
-- [ ] Complete the descriptions of the commands
+- [ ] Complete the descriptions of the commands with 
+	- yargs.usage("Usage: \n $0 ...)
+- [x] Added options in different groups for display purposes:
+	- command specifics: "Options"
+	- global commands: "Flags"
+- [ ] Add git utils functions and add commit/pull etc on commands
 
 ### Commands
 - [ ] global:
-    * add commandDir() for yargs with the necessary exports on the commands
+    * add name property to configuration files
+    * [x] add commandDir() for yargs with the necessary exports on the commands 
     * change locations -> /home/user/data
     * change locations -> /home/user/data-domain 
     * remove user folder
-    * ssh-cois INCORRECT   * change from: name.domain.suffix to:suffix.domain.name
+    * ssh-config INCORRECT -> change from: name.domain.suffix to:suffix.domain.name
     * introduce new options for specific commands (-y) for questions
     * remove all TODO's and FIXME
     * comment utils functions with jsdocs syntax 
@@ -39,7 +46,7 @@
 - [ ] proxy: added proxy more verbose 
 - [ ] completion: think a way to make completion/parser.py global
 - [ ] password: compute password for container 
-- [ ] alias: add command for:
+- [ ] alias: add command for (Using command for each one??)
     * modify
     * create
     * show
@@ -49,9 +56,11 @@
     * implement custom completion as seen on pull request on yargs
 
 ### Customization
-- [ ] Add "npm chalck" for custom messages with colors
+- [ ] Add "npm chalk" for custom messages with colors
 - [ ] Add "npm loglevel"
 - [ ] Add "npm prompt" for the questions following links
 - [ ] Modify all the usage messages for each command
-- [ ] Order commands in lxce help message
+- [ ] ~~Order commands in lxce help message~~
 
+### DUDAS
+- Borrar el directorio de los dominios cuando no exista ningun contenedor dentro?. Igual con la parte de domains dentro de lxce config.
