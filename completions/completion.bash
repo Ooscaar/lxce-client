@@ -1,9 +1,10 @@
-###-begin-lxce-completions-###
+###-lxce-completions-###
 #
-# yargs command completion script
+# lxce completion for bash
 #
-# Installation: bin/lxce completion >> ~/.bashrc
-#    or bin/lxce completion >> ~/.bash_profile on OSX.
+# Installation: 
+# $: source completions/completion.bash
+# $: cat completions/completions.bash >> ~/.bashrc
 #
 _yargs_completions()
 {
@@ -13,7 +14,7 @@ _yargs_completions()
     args=("${COMP_WORDS[@]}")
 
     # ask yargs to generate completions.
-    type_list=$(/usr/sbin/lxce --get-yargs-completions "${args[@]}")
+    type_list=$(./build/index.js --get-yargs-completions "${args[@]}")
 
     COMPREPLY=( $(compgen -W "${type_list}" -- ${cur_word}) )
 
@@ -24,6 +25,6 @@ _yargs_completions()
 
     return 0
 }
-complete -o default -F _yargs_completions lxce
+complete -o default -F _yargs_completions index.js
 ###-end-lxce-completions-###
 
