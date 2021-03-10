@@ -15,6 +15,7 @@
     "type": "git",
     "url": "/home/alice/repos/tfg-lxce"
   },
+  "private": true,
   "author": "",
   "license": "ISC",
   "devDependencies": {
