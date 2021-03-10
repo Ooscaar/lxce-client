@@ -184,6 +184,7 @@ const typeMap: any = {
         { json: "SSH_suffix", js: "SSH_suffix", typ: "" },
     ], false),
     "ContainerConfig": o([
+        { json: "name", js: "name", typ: "" },
         { json: "alias", js: "alias", typ: "" },
         { json: "id_domain", js: "id_domain", typ: 0 },
         { json: "id_container", js: "id_container", typ: 0 },

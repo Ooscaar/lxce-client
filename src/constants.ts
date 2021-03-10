@@ -45,6 +45,7 @@ export const CONF_FILE_DATA: LxceConfig = {
 
 export const LXCE_DIR = "lxce/";
 export const CONTAINER_CONFIG_DEFAULT: ContainerConfig = {   // save in DEFAULT_CONTAINER_CONF_FILE
+  name: "",
   alias: "",
   id_domain: 0,
   id_container: 0,

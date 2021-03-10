@@ -11,6 +11,7 @@ export interface Hypervisor {
 }
 
 export interface ContainerConfig {
+    name: string;
     alias: string;
     id_domain: number,
     id_container: number,
