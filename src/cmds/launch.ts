@@ -96,7 +96,7 @@ function getContainerID(domain: string): number {
     return container_id
 }
 
-// Return ssh config file 
+// Return ssh config file
 function sshConfig(ssh: SSH): string {
     let firstLine = `Host ${ssh.suffix}${ssh.name}.${ssh.domain}`
     // Adding one space !!
@@ -149,7 +149,7 @@ function checkLaunch(domain: string) {
         process.exit(1)
     }
 
-    // Adding domain to general conf 
+    // Adding domain to general conf
     // FIXME: should be in another place??
     let lxceConfig = readLxceConfig(CONF_FILE)
     if (!lxceConfig.domains.includes(domain)) {
@@ -376,6 +376,7 @@ export const describe = "Launch containers from a specific domain"
 export const handler = cmdLaunch
 
 export const builder = {
+    // NAMES!!, as is an array
     "names": {
         alias: 'n',
         describe: 'Names/name of the containers/container',
@@ -386,7 +387,7 @@ export const builder = {
         alias: "d",
         describe: "Domain for the container",
         demand: true,
-        type: string,
+        type: "string",
         nargs: 1
     },
     "range": {
