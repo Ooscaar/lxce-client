@@ -186,7 +186,7 @@ const typeMap: any = {
     "ContainerConfig": o([
         { json: "name", js: "name", typ: "" },
         { json: "alias", js: "alias", typ: "" },
-        { json: "user", js: "alias", typ: "" },
+        { json: "user", js: "user", typ: "" },
         { json: "id_domain", js: "id_domain", typ: 0 },
         { json: "id_container", js: "id_container", typ: 0 },
         { json: "alias", js: "alias", typ: "" },
