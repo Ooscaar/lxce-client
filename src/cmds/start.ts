@@ -90,8 +90,11 @@ export function cmdStart(args: any) {
 // Yargs command options
 // ---------------------
 export const command = "start"
+
 export const describe = "Start containers"
+
 export const handler = cmdStart
+
 export const builder = {
     "global": {
         alias: "g",

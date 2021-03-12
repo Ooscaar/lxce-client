@@ -1,10 +1,8 @@
 import * as fs from "fs"
-import * as util from "util"
-import yargs from "yargs"
-import { exec, execSync } from "child_process"
+import { execSync } from "child_process"
 
-import { CONF_FILE_DATA, CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, SSH_DIR, CONTAINER_CONFIG_DEFAULT, BASE_DIR } from "../constants"
-import { checkAcces, checkContainerConfig, checkDefaultConfig } from "../utils/util"
+import { CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, SSH_DIR, BASE_DIR } from "../constants"
+import { checkContainerConfig, checkDefaultConfig } from "../utils/util"
 
 // Check if init has already been initialized
 // and in negative case, check is the default
@@ -77,7 +75,7 @@ function init() {
 
 
 // Init function
-function cmdInit(args: yargs.Arguments) {
+function cmdInit(args: any) {
     checkInit()
 
     init()

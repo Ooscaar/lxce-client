@@ -1,7 +1,7 @@
 import { execSync } from "child_process"
 import path from "path"
 import { CONF_FILE, CONTAINER_CONFIG_DIR } from "../constants"
-import { checkAcces, checkDomain, checkInitialized, getName, lxdDNS, readContainerConfig, readJSON, readLxceConfig } from "../utils/util"
+import { checkDomain, checkInitialized, getName, lxdDNS, readContainerConfig, readLxceConfig } from "../utils/util"
 import { ContainerConfig, Proxy } from "../interfaces/interfaces"
 import yargs from "yargs"
 import * as fs from "fs"
@@ -25,7 +25,7 @@ export function lxcProxy(name: string, hostPort: number, cHostname: string, prox
 
     try {
         execSync(command)
-        console.log("[**] added proxy")
+        console.log(`[**] added proxy-${proxy.name} `)
     } catch (err) {
         console.error(err.message)
         process.exit(1)
@@ -47,7 +47,7 @@ function removeProxy(name: string, proxyName: string) {
 // Using:
 // lxc config device list ...
 // as at the moment of calling the function
-// the existing proxies have changed in the 
+// the existing proxies have changed in the
 // configuration file of lxce
 function removeProxies(name: string) {
     try {

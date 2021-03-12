@@ -18,7 +18,7 @@ import {
 } from "../constants"
 
 import {
-    checkAcces,
+    checkAccess,
     checkContainerConfig,
     checkDefaultConfig,
     checkInitialized,
@@ -126,7 +126,7 @@ function checkLaunch(domain: string) {
     console.log("[*] Initialized: ok!")
 
     console.log("[*] Acces")
-    if (!checkAcces()) {
+    if (!checkAccess()) {
         console.log("[*] Exiting ...")
         process.exit(1)
     }
