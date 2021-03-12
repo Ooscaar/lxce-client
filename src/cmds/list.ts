@@ -1,20 +1,27 @@
 import { table } from "table"
 import { CONTAINER_CONFIG_DIR, tableConfig } from "../constants";
 import { execSync } from "child_process";
-import { readContainerConfig } from "../utils/util";
+import { checkInitialized, readContainerConfig } from "../utils/util";
 import path from "path";
 import * as fs from "fs";
 import { getPortNumber, launchProxies } from "./launch";
+import yargs from "yargs";
 
 
-// Temporal client 
+// Temporal client
 const URL = "unix://var/snap/lxd/common/lxd/unix.socket"
 
+// TODO: add socket and client lxd checks
+function checkList() {
 
+    if (!checkInitialized()) {
+        process.exit(1)
+    }
+}
 
 function getContainerJSON(name: string, domain: string): any {
     let data = execSync(`curl --unix-socket /var/snap/lxd/common/lxd/unix.socket s/1.0/containers/${name}/state 2>/dev/null`).toString()
-    let json = JSON.parse(data,).metadata
+    let json = JSON.parse(data).metadata
     const containerConfig = readContainerConfig(path.join(CONTAINER_CONFIG_DIR, domain, name))
 
     // FIXME: Temporal
@@ -26,7 +33,7 @@ function getContainerJSON(name: string, domain: string): any {
             id_domain,
             index
         )
-        return port
+        return `${proxy.port}/${proxy.type} -> ${proxy.listen}:${port}\n`
     })
 
     // Return object according to table
@@ -36,11 +43,14 @@ function getContainerJSON(name: string, domain: string): any {
         domain: domain,
         state: json.status ?? "",
         ipv4: json.network ? json.network.eth0.addresses[0].address : "",
-        ports: ports.toString()
+        ports: ports.toString().replace(",", "")        // remove , for format
     }
 }
 
 function cmdList(args: any) {
+
+    // Check
+    checkList()
 
     // Get info from all containers
     let data: Array<any> = [["NAME", "ALIAS", "DOMAIN", "STATE", "Ipv4", "PORTS"]]
