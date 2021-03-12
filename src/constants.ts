@@ -79,6 +79,7 @@ export const CONTAINER_CONFIG_DEFAULT: ContainerConfig = {   // save in DEFAULT_
 // Random names configurations
 // ---------------------------
 import { Config as NamesConfig, adjectives, colors, animals } from 'unique-names-generator';
+import { table, TableUserConfig } from "table";
 
 export const NAMES_CONFIG: NamesConfig = {
     dictionaries: [adjectives, colors],
@@ -90,7 +91,7 @@ export const NAMES_CONFIG: NamesConfig = {
 // ---------------------------
 // Table configurations
 // ---------------------------
-export const tableConfig = {
+export const tableConfig: TableUserConfig = {
     border: {
         topBody: `-`,
         topJoin: `+`,
@@ -111,5 +112,58 @@ export const tableConfig = {
         joinRight: `+`,
         joinJoin: `+`
     },
+    columns: {
+        0: {
+            alignment: "center"
+        },
+        1: {
+            alignment: "center"
+        },
+        2: {
+            alignment: "center"
+        },
+        3: {
+            alignment: "center"
+        },
+        4: {
+            alignment: "center"
+        },
+        5: {
+            alignment: "center"
+        },
+        6: {
+            alignment: "center"
+        },
+        7: {
+            alignment: "center"
+        },
+        8: {
+            alignment: "center"
+        },
+        9: {
+            alignment: "center"
+        },
+        10: {
+            alignment: "center"
+        },
+        11: {
+            alignment: "center"
+        },
+        12: {
+            alignment: "center"
+        },
+        13: {
+            alignment: "center"
+        },
+        14: {
+            alignment: "center"
+        },
+        15: {
+            alignment: "center"
+        },
+        16: {
+            alignment: "center"
+        }
+    }
 }
 
