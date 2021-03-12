@@ -1,6 +1,7 @@
 import { exec, execSync } from "child_process"
 import * as crypto from "crypto"
 import * as fs from "fs"
+import inquirer from "inquirer"
 import path from "path"
 import yargs from "yargs"
 import {
@@ -8,6 +9,7 @@ import {
     CONTAINER_CONFIG_DEFAULT,
     CONTAINER_CONFIG_DIR,
     DEFAULT_CONTAINER_CONF_FILE,
+    LXCE_DIR,
     MAX_CONTAINER_PER_DOMAIN,
     MAX_DOMAINS,
     MAX_PROXIES_PER_CONTAINER,
@@ -17,6 +19,7 @@ import {
 } from "../constants"
 import { ContainerConfig, LxceConfig, SSH } from "../interfaces/interfaces"
 import { Convert } from "./parser"
+import chalk from "chalk"
 
 
 
@@ -36,9 +39,11 @@ export function generateSeed(bits: number, encoding: BufferEncoding): string {
 }
 
 /**
- * 
- * @param seed 
- * @param name 
+ * Compute container password based on seed, key and user
+ *
+ * @param seed Container seed
+ * @param name Container name
+ * @param user Container user
  */
 export function generatePassword(seed: string, name: string, user: string): string {
     let key = seed + name + user
@@ -52,51 +57,7 @@ export function generatePassword(seed: string, name: string, user: string): stri
 // --------------------------------------------------------  //
 // ********************* JSON utils ***********************  //
 // --------------------------------------------------------  //
-/**
- * Write JSON in path indicated syncronously
- * Throw exceptions if the file does not exists
- * https://github.com/sindresorhus/write-json-file/blob/main/index.js
- * TODO: rewrite description
- *
- * @param filePath
- * @param data
- * @param space
- * @param encoding
- */
-export function writeJSON(filePath: string, data: any, space = 2, encoding = "utf8") {
-    try {
-        const file = fs.readFileSync(filePath)
-    } catch (err) {
-        // Everything except if file does not exists
-        if (err.code !== "ENOENT") {
-            console.log(err.code)
-            throw err
-        }
-    }
 
-    const json = JSON.stringify(data, null, space)
-    fs.writeFileSync(filePath, json, encoding)
-}
-
-/**
- * Reads file and return json object
- * with utf-8 encoding by default
- *
- * @param filePath
- */
-export function readJSON(filePath: string): any {
-    try {
-        // Must specify encoding to return string
-        const file = fs.readFileSync(filePath, "utf-8")
-
-        const json = JSON.parse(file)
-        return json
-
-    } catch (err) {
-        throw err
-
-    }
-}
 
 export function readContainerConfig(filePath: string): ContainerConfig {
     try {
@@ -165,10 +126,46 @@ export function writeSSHConfig(filePath: string, sshConfig: string, encoding = "
 }
 
 
+// ----------------------------------------------------------------  //
+// ********************* ALIAS-NAMES-USER-DOMAINS *****************  //
+// ----------------------------------------------------------------  //
 
-// --------------------------------------------------------  //
-// ********************* ALIAS-NAMES-USER *****************  //
-// --------------------------------------------------------  //
+/**
+ * Return all container domains
+ */
+export function getDomains(): string[] {
+    return fs.readdirSync(CONTAINER_CONFIG_DIR)
+}
+
+/**
+ * Return all containers names from specific domain
+ *
+ * @param domain Container domain
+ */
+export function getContainersDomain(domain: string): string[] {
+    return fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))
+
+}
+/**
+ * Return all containers names from all domains
+ */
+export function getContainersAll(): string[] {
+    let containers: string[] = []
+
+    // A bit ugly as we are overwriting the
+    // array
+    // concat return a new array
+    for (const domain of getDomains()) {
+        containers = containers.concat(
+            fs.readdirSync(
+                path.join(CONTAINER_CONFIG_DIR, domain)
+            )
+        )
+    }
+    return containers
+
+}
+
 
 // We don't check the existence of name
 // as it should be checked before
@@ -184,37 +181,40 @@ export function getNamefromAlias(alias: string, domain: string): string {
 
 }
 
-// Get container name from name provided
-// which can be either an alias or a full
-// container name within a domain
 // TODO: manage the process exit
+/**
+ * Get container name from name/alias
+ * provided within a domain
+ *
+ * @param argsName Container alias or full name
+ * @param domain Container domain
+ */
 export function getName(argsName: string, domain: string): string {
     let name = ""
+    if (!checkDomain(domain)) {
+        console.log(`[**] Domain ${chalk.bold(domain)} does not exist`)
+        process.exit(1)
+    }
     if (existAlias(argsName, domain)) {
         return getNamefromAlias(argsName, domain)
     }
 
     if (!existName(argsName, domain)) {
-        yargs.showHelp()
-        console.log("[*] Name does not exist")
+        console.log(`[**] Name/alias ${chalk.bold(argsName)} provided does not exist inside ${chalk.bold(domain)}`)
         process.exit(1)
     }
     return argsName
 }
 
 // Get user of existing running container
+// Must be called after the container is completly
+// initialized
 export function getUserContainer(name: string): string {
     try {
         console.log("[**] Getting user")
         let command = `lxc exec ${name} -- bash -c "id -un ${UID}"`
         let user = execSync(command).toString().replace("\n", "")
         console.log(`[**] Getting user: ${user} !!`)
-        if (!user) {
-            console.log("dentro del if")
-            let user = execSync(command).toString().replace("\n", "")
-            console.log("user:", user)
-            process.exit(1)
-        }
         return user
     } catch (err) {
         console.log("[**] user not found")
@@ -228,23 +228,23 @@ export function getUserContainer(name: string): string {
 // --------------------------------------------------------  //
 // *********************CHECK FUNCTIONS *******************  //
 // --------------------------------------------------------  //
-// These functions are intented to:                          //
-// - Provide general comprovations to each command           //
+// These functions are intended to:                          //
+// - Provide general checks to each command           //
 // - Provide logs and debug messages                         //
 //   without killing the process.                            //
 // --------------------------------------------------------  //
 
-// Check if cmdInit has already been executed - i.e: exist 
+// Check if cmdInit has already been executed - i.e: exist
 // the following:
 // - ssh (d)
-// - container.conf.d (d) 
+// - container.conf.d (d)
 // - lxce.conf
 // - container.default.conf
-// The default configurations are assumed to be 
-// correct as the folders won't be created 
+// The default configurations are assumed to be
+// correct as the folders won't be created
 // if the configurations are wrong
-// 
-// *read acces is assumed
+//
+// *read access is assumed
 export function checkInitialized(): boolean {
     // Check already configured
     if (!fs.existsSync(CONF_FILE) || !fs.existsSync(DEFAULT_CONTAINER_CONF_FILE)) {
@@ -255,7 +255,7 @@ export function checkInitialized(): boolean {
 
 
     if (!fs.existsSync(CONTAINER_CONFIG_DIR)) {
-        console.log("[**] The configuration directory is not avalaible")
+        console.log("[**] The configuration directory is not available")
         console.log("[**] run lxce init")
         return false
     }
@@ -299,7 +299,7 @@ export function checkDefaultConfig(): boolean {
 
 
     if (!configLxce.hypervisor.SSH_suffix) {
-        console.log("[**] SSH suffic has not been set up")
+        console.log("[**] SSH suffix has not been set up")
         console.log("[**] Edit the %s and run 'lxce init' again", CONF_FILE)
         return false
     }
@@ -334,9 +334,9 @@ function checkBase(base: string): boolean {
 }
 // Check all the configurations related to a container
 // - SSH hostname
-// - Locations 
+// - Locations
 // - ....
-// in order to initialize specific intructions 
+// in order to initialize specific intructions
 export function checkContainerConfig(name: string): boolean {
     try {
         const containerConfig = readContainerConfig(name)
@@ -364,14 +364,22 @@ export function checkContainerConfig(name: string): boolean {
 }
 
 
-// Check if has access to configuations directories
+// Check if has access to configurations directories
 // - Write
 // as the configurations are located in read only
-// directories 
-export function checkAcces(): boolean {
+// directories
+export function checkAccess(): boolean {
     try {
         fs.accessSync(CONTAINER_CONFIG_DIR, fs.constants.W_OK)
         fs.accessSync(SSH_DIR, fs.constants.W_OK)
+
+        // Look to parent directories
+        const locations = readLxceConfig(CONF_FILE).locations
+        for (const loc of locations) {
+            fs.accessSync(loc)
+            fs.accessSync(loc)
+        }
+
         return true
     } catch (err) {
         console.log("[**] don't have permissions")
@@ -420,8 +428,13 @@ export function existAlias(argAlias: string | Array<string>, domain: string): bo
 
 
 export function existName(name: string, domain: string): boolean {
-    const locations = fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))
-    return locations.includes(name)
+    return fs.existsSync(
+        path.join(
+            CONTAINER_CONFIG_DIR,
+            domain,
+            name
+        )
+    )
 }
 
 
@@ -443,15 +456,22 @@ export function lxcStop() {
 
 }
 
-export function lxcDelete() {
-
+export function lxcDelete(name: string) {
+    // Stop and delete containers
+    let remove: string = `lxc delete ${name} -f`
+    try {
+        console.log(`[**] Removing ${name}`)
+        execSync(remove)
+    } catch (err) {
+        console.log("[*] Error removing containers")
+    }
 }
 
 // Perfoms dns resolution inside container
 // to check if *.lxd is working
 // Expected result:
 // awful-yellow.lxd has address 10.10.0.212
-// awful-yellow.lxd has IPv6 address fd42:7c8c:7fab:4125:216:3eff:fe4d:1c95 
+// awful-yellow.lxd has IPv6 address fd42:7c8c:7fab:4125:216:3eff:fe4d:1c95
 export function lxdDNS(name: string) {
     try {
         let resolve = execSync(`lxc exec ${name} -- bash -c "host ${name}.lxd"`)
@@ -503,5 +523,20 @@ export function gitCommit() {
 }
 
 export function gitPull() {
+
+}
+
+
+// --------------------------------------------------------  //
+// ******************** Inquirer questions   *************** //
+// --------------------------------------------------------  //
+export async function askQuestion(questionMessage: string) {
+    const question = {
+        type: "confirm",
+        name: "answer",
+        message: questionMessage,
+    }
+    const { answer } = await inquirer.prompt([question])
+    return answer
 
 }
