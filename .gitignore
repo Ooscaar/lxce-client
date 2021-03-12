@@ -6,3 +6,4 @@ node_modules
 /src/*.json
 TFG.code-workspace
 datasdd/lxce/default/.bash_history
+bin/lxce
