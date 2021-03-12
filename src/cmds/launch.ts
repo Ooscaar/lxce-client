@@ -185,6 +185,9 @@ function launchConfigurations(name: string, user: string, containerConfig: Conta
     try {
         // Container.conf.d
         fs.mkdirSync(path.join(CONTAINER_CONFIG_DIR, containerConfig.domain), { recursive: true })    // fs.writeFile does not create direct.
+
+        // Update user
+        containerConfig.user = user
         writeContainerConfig(
             path.join(CONTAINER_CONFIG_DIR, containerConfig.domain, name),
             containerConfig
@@ -339,19 +342,20 @@ export function cmdLaunch(args: any) {
         const lxceConfig = readLxceConfig(CONF_FILE)
 
         for (let i = 0; i < args.range; i++) {
-            let name: string = uniqueNamesGenerator(NAMES_CONFIG)
+            let randonName: string = uniqueNamesGenerator(NAMES_CONFIG)
 
             // In order to have a copy of the object
             let containerConfig = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
 
+            containerConfig.name = randonName
             containerConfig.alias = args.names ? args.names[i] : ""
             containerConfig.domain = args.domain
             containerConfig.id_domain = getDomainID(args.domain)
             containerConfig.id_container = getContainerID(args.domain)
 
-            console.log("[*] Launching container with", name)
-            launch(containerConfig, lxceConfig, name)
-            console.log("[\u2713] Launching container with", name)
+            console.log("[*] Launching container with", randonName)
+            launch(containerConfig, lxceConfig, randonName)
+            console.log("[\u2713] Launching container with", randonName)
         }
 
         console.log("[*] --------------------------------------------------------------")
