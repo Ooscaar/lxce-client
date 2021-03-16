@@ -74,6 +74,25 @@ export const CONTAINER_CONFIG_DEFAULT: ContainerConfig = {   // save in DEFAULT_
 
 };
 
+//
+export const LIST_PARAMETERS: { [param: string]: string } = {
+    "n": "name",
+    "a": "alias",
+    "u": "user",
+    "b": "base",
+    "r": "ram",
+    "p": "ports",
+    "4": "ipv4",
+    "6": "ipv6",
+    "s": "status",
+    "d": "domain"
+}
+
+// The keys are the options passed to the command
+// lxce list -f "naup46s"
+export const LIST_OPTIONS = Object.keys(LIST_PARAMETERS)
+
+export const DEFAULT_LIST_PARAMETERS = ["name", "alias", "domain", "status", "ipv4", "ports"]
 
 // ---------------------------
 // Random names configurations

@@ -1,15 +1,12 @@
 import { table } from "table"
-import { CONTAINER_CONFIG_DIR, tableConfig } from "../constants";
-import { execSync } from "child_process";
-import { checkInitialized, readContainerConfig } from "../utils/util";
+import { CONTAINER_CONFIG_DIR, DEFAULT_LIST_PARAMETERS, LIST_OPTIONS, LIST_PARAMETERS, tableConfig } from "../constants";
+import { checkInitialized, getContainersDomain, getDomains, readContainerConfig } from "../utils/util";
 import path from "path";
 import * as fs from "fs";
-import { getPortNumber, launchProxies } from "./launch";
-import yargs from "yargs";
+import { getPortNumber } from "./launch";
+import * as http from "http"
 
 
-// Temporal client
-const URL = "unix://var/snap/lxd/common/lxd/unix.socket"
 
 // TODO: add socket and client lxd checks
 function checkList() {
@@ -19,57 +16,108 @@ function checkList() {
     }
 }
 
-function getContainerJSON(name: string, domain: string): any {
-    let data = execSync(`curl --unix-socket /var/snap/lxd/common/lxd/unix.socket s/1.0/containers/${name}/state 2>/dev/null`).toString()
-    let json = JSON.parse(data).metadata
-    const containerConfig = readContainerConfig(path.join(CONTAINER_CONFIG_DIR, domain, name))
+// https://stackoverflow.com/questions/35182752/promises-with-http-get-node-js
+async function makeRequest(containerName: string): Promise<any> {
 
-    // FIXME: Temporal
-    let id_container = containerConfig.id_container
-    let id_domain = containerConfig.id_domain
-    let ports = containerConfig.proxies.map((proxy, index) => {
+    const options = {
+        socketPath: '/var/snap/lxd/common/lxd/unix.socket',
+        path: `/1.0/containers/${containerName}/state`
+    }
+
+    return new Promise((resolve, reject) => {
+        http.get(options, response => {
+            response.on("data", data => {
+                let json = JSON.parse(data.toString())
+                resolve(json.metadata)
+            })
+            response.on("error", data => {
+                reject(data.toString())
+            })
+        })
+    })
+}
+
+
+async function getContainerJSON(name: string, domain: string) {
+    // Return object representing container
+    let container: any = {}
+
+    // From configuration file
+    const containerConfig = readContainerConfig(path.join(CONTAINER_CONFIG_DIR, domain, name))
+    container["name"] = containerConfig.name
+    container["alias"] = containerConfig.alias
+    container["user"] = containerConfig.user
+    container["domain"] = containerConfig.domain
+    container["ports"] = containerConfig.proxies.map((proxy, index) => {
         let port = getPortNumber(
-            id_container,
-            id_domain,
+            containerConfig.id_container,
+            containerConfig.id_domain,
             index
         )
         return `${proxy.port}/${proxy.type} -> ${proxy.listen}:${port}\n`
-    })
+    }).toString().replace(",", "")
+    container["base"] = containerConfig.base
 
-    // Return object according to table
-    return {
-        name: name,
-        alias: containerConfig.alias,
-        domain: domain,
-        state: json.status ?? "",
-        ipv4: json.network ? json.network.eth0.addresses[0].address : "",
-        ports: ports.toString().replace(",", "")        // remove , for format
-    }
+    // From API
+    const json = await makeRequest(name)
+    container["status"] = json.status
+    container["ipv4"] = json.network ? json.network.eth0.addresses[0].address : ""
+    container["ipv6"] = json.network ? json.network.eth0.addresses[1].address : ""
+    container["ram"] = json.memory.usage !== 0 ? `${json.memory.usage / 1e6} MB` : 0
+
+
+    return container
 }
 
-function cmdList(args: any) {
+
+
+function parse(param: string): string[] {
+    let result: string[] = []
+
+    // Map letters with parameters names
+    for (let letter of param) {
+
+        if (!LIST_OPTIONS.includes(letter)) {
+            console.log(`[*] Unknown Parameter ${letter}`)
+            process.exit(1)
+        }
+
+        result.push(LIST_PARAMETERS[letter])
+    }
+
+    return result
+}
+
+async function cmdList(args: any) {
 
     // Check
     checkList()
 
-    // Get info from all containers
-    let data: Array<any> = [["NAME", "ALIAS", "DOMAIN", "STATE", "Ipv4", "PORTS"]]
-    let domains = fs.readdirSync(CONTAINER_CONFIG_DIR)
-    for (let domain of domains) {
-        for (let containerName of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))) {
-            let dataContainer = getContainerJSON(containerName, domain)
-            let arr = []
-            for (let elem of Object.values(dataContainer)) {
-                arr.push(elem)
-            }
-            data.push(arr)
-        }
+    // Parse parameters
+    // In case no parameter format specified
+    // set default parameters
+    const param = args.format ? parse(args.format) : DEFAULT_LIST_PARAMETERS
 
+    // GET json from each container
+    // and get only parameters specified
+    let data = []
+    data.push(param.map(elem => elem.toUpperCase()))
+
+    for (let domain of getDomains()) {
+        for (let containerName of getContainersDomain(domain)) {
+            let containerData = []
+            let containerJson = await getContainerJSON(containerName, domain)
+
+            for (let elem of Object.values(param)) {
+                containerData.push(containerJson[elem])
+            }
+
+            data.push(containerData)
+        }
     }
 
-    // Create table
+    // Print table
     console.log(table(data, tableConfig))
-    process.exit(0)
 
 
 }
@@ -83,11 +131,30 @@ export const describe = "List containers properties"
 
 export const handler = cmdList
 
-export const builder = {
-    "format": {
+// TODO: resolve spaces in help message
+export const builder = (yargs: any) => {
+    yargs.usage(
+        `Usage: $0 list [--format/-f] options [flags]
+
+    Format options
+    ==============
+    -n: "name"
+    -a: "alias"
+    -u: "user"
+    -b: "base"
+    -r: "ram"
+    -p: "ports"
+    -4: "ipv4"
+    -6: "ipv6"
+    -s: "status"
+    -d: "domain
+    `)
+    yargs.strict()
+    yargs.option("format", {
         alias: "f",
         describe: "Values to show",
-        type: "array",
-        required: false
-    }
+        type: "string",
+        required: false,
+        nargs: 1
+    })
 }
