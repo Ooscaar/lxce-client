@@ -43,7 +43,7 @@ function checkAlias(domain: string) {
     }
 }
 
-function cmdAliasModify(args: any) {
+function cmdAliasSet(args: any) {
     // Checkings
     checkAlias(args.domain)
 
@@ -65,7 +65,7 @@ function cmdAliasModify(args: any) {
     process.exit(0)
 }
 
-function cmdAliasDelete(args: any) {
+function cmdAliasUnset(args: any) {
     // Checkings
     checkAlias(args.domain)
 
@@ -184,16 +184,16 @@ export const builder = (yargs: any) => {
     yargs.demandCommand(1, "")
     yargs.strict()
     yargs.command(
-        "modify",
-        "modify existing alias",
+        "set",
+        "set container alias",
         builderModify,
-        cmdAliasModify
+        cmdAliasSet
     )
     yargs.command(
-        "delete",
-        "delete container alias",
+        "unset",
+        "unset container alias",
         builderDelete,
-        cmdAliasDelete
+        cmdAliasUnset
     )
     yargs.command(
         "show",
