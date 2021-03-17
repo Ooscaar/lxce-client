@@ -204,6 +204,13 @@ export const builder = (yargs: any) => {
         type: 'string',
         nargs: 1,
     })
+    yargs.option("alias", {
+        alias: 'a',
+        describe: 'Container alias',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    })
     yargs.example([
         ["$0 rebase --global", "Applies new base to all containers"],
         ["$0 rebase -d google", "Applies new base to all containers withing google domain"],
