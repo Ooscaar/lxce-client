@@ -2,7 +2,7 @@ import { execSync } from "child_process"
 import path from "path"
 import yargs from "yargs"
 import { CONTAINER_CONFIG_DIR } from "../constants"
-import { checkDomain, checkInitialized, getName } from "../utils/util"
+import { checkDomain, checkInitialized, getContainerName } from "../utils/util"
 import * as fs from "fs"
 
 
@@ -90,7 +90,7 @@ function cmdStop(args: any) {
             process.exit(1)
         }
         console.log("[*] Running only one container")
-        let containerName = getName(args.name, args.domain)
+        let containerName = getContainerName(args.name, args.domain)
         stopContainer(containerName)
         process.exit(0)
     }

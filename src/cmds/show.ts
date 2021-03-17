@@ -5,7 +5,7 @@ import {
     getDomains,
     getContainersDomain,
     readContainerConfig,
-    getName,
+    getContainerName,
     checkDomain,
     checkInitialized
 } from "../utils/util"
@@ -85,7 +85,7 @@ function cmdShow(args: any) {
             console.log("[*] Example: lxce show -d google -n alice")
             process.exit(1)
         }
-        let containerName = getName(args.name, args.domain)
+        let containerName = getContainerName(args.name, args.domain)
         show(containerName, args.domain)
         process.exit(0)
     }

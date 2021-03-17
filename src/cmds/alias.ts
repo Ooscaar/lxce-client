@@ -1,5 +1,5 @@
 import yargs from "yargs"
-import { checkAccess, checkDomain, checkInitialized, existAlias, getName, readContainerConfig, writeContainerConfig } from "../utils/util"
+import { checkAccess, checkDomain, checkInitialized, existAlias, getContainerName, readContainerConfig, writeContainerConfig } from "../utils/util"
 import { CONTAINER_CONFIG_DIR } from "../constants"
 import path from "path"
 import { domain } from "node:process"
@@ -48,7 +48,7 @@ function cmdAliasSet(args: any) {
     checkAlias(args.domain)
 
     // Already check for the existence
-    let containerName = getName(args.name, args.domain)
+    let containerName = getContainerName(args.name, args.domain)
 
     // Check alias does not exist
     if (existAlias(args.alias, args.domain)) {
@@ -70,7 +70,7 @@ function cmdAliasUnset(args: any) {
     checkAlias(args.domain)
 
     // Already check for the existence
-    let containerName = getName(args.name, args.domain)
+    let containerName = getContainerName(args.name, args.domain)
 
     // Create alias from args.name
     const containerPath = path.join(
@@ -92,7 +92,7 @@ function cmdAliasShow(args: any) {
         process.exit(1)
     }
     // Already check for the existence
-    let containerName = getName(args.name, args.domain)
+    let containerName = getContainerName(args.name, args.domain)
 
     // Create alias from args.name
     const containerPath = path.join(

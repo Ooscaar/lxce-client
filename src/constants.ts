@@ -1,7 +1,7 @@
 import { ContainerConfig, LxceConfig } from "./interfaces/interfaces"
-// ------------------------
+// -----------------------------------------------------------------------------------------------------
 // Configurations constants
-// ------------------------
+// -----------------------------------------------------------------------------------------------------
 export const UPC = '.upc.edu';
 export const rsa_key_size = 4096
 export const PASSWORD_LENGTH = 10;

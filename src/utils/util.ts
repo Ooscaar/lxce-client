@@ -17,7 +17,7 @@ import {
     SSH_DIR,
     UID
 } from "../constants"
-import { ContainerConfig, LxceConfig, SSH } from "../interfaces/interfaces"
+import { ContainerConfig, LxceConfig, Proxy, SSH } from "../interfaces/interfaces"
 import { Convert } from "./parser"
 import chalk from "chalk"
 
@@ -167,15 +167,17 @@ export function getContainersAll(): string[] {
 }
 
 
-// We don't check the existence of name
-// as it should be checked before
-export function getNamefromAlias(alias: string, domain: string): string {
-    for (const loc of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))) {
-        const containerConfig = readContainerConfig(path.join(CONTAINER_CONFIG_DIR, domain, loc))
+// Get name from alias within a domain
+function getNamefromAlias(alias: string, domain: string): string {
 
-        // As file name corresponds to container name
-        if (containerConfig.alias == alias) return loc
+    for (let containerName of getContainersDomain(domain)) {
+        const containerConfig = readContainerConfig(path.join(CONTAINER_CONFIG_DIR, domain, containerName))
+
+        if (containerConfig.alias == alias) {
+            return containerName
+        }
     }
+
     // For typescript message
     return ""
 
@@ -184,12 +186,13 @@ export function getNamefromAlias(alias: string, domain: string): string {
 // TODO: manage the process exit
 /**
  * Get container name from name/alias
- * provided within a domain
+ * provided within a domain.
+ *
  *
  * @param argsName Container alias or full name
  * @param domain Container domain
  */
-export function getName(argsName: string, domain: string): string {
+export function getContainerName(argsName: string, domain: string): string {
     let name = ""
     if (!checkDomain(domain)) {
         console.log(`[**] Domain ${chalk.bold(domain)} does not exist`)
@@ -444,8 +447,14 @@ export function existName(name: string, domain: string): boolean {
 
 // FIXME: implement them
 
-export function lxcLaunch() {
+export function lxcLaunch(name: string, base: string) {
 
+    let launch = `lxc launch ${base} ${name}`
+    try {
+        execSync(launch)
+    } catch (err) {
+        console.log("[*] Error launching container")
+    }
 }
 
 export function lxcStart() {
@@ -453,6 +462,24 @@ export function lxcStart() {
 }
 
 export function lxcStop() {
+
+}
+
+/**
+ * Waits until container is fully initialized
+ *
+ *
+ */
+export function lxcWait(name: string) {
+    let wait = `lxc exec ${name} -- cloud-init status -w`
+
+    try {
+        execSync(`lxc exec ${name} -- cloud-init status -w`, { stdio: [process.stdin, process.stdout, process.stderr] })
+    } catch (err) {
+        console.log("[*] Error waiting for the container")
+        process.exit(1)
+
+    }
 
 }
 
@@ -493,11 +520,31 @@ export function lxdRestart() {
 
 }
 
-export function lxcProxy() {
+export function lxcProxy(name: string, hostPort: number, cHostname: string, proxy: Proxy) {
+    let proxyDevice = `proxy-${proxy.name}`
+    let command = `lxc config device add ${name} ${proxyDevice} proxy\
+    listen=${proxy.type}:${proxy.listen}:${hostPort}\
+    connect=${proxy.type}:${cHostname}:${proxy.port}`
+
+    try {
+        execSync(command)
+        console.log(`[**] added proxy-${proxy.name} `)
+    } catch (err) {
+        console.error(err.message)
+        process.exit(1)
+    }
 
 }
 
-export function lxcDeviceAdd() {
+export function lxcDeviceAdd(name: string, domain: string, hostPath: string, user: string) {
+
+    try {
+        execSync(`lxc config device add ${name} data-${domain} disk source=${hostPath} path="/home/${user}/data-${domain}"`)
+    } catch (err) {
+        console.log("[*] Error adding device")
+        process.exit(1)
+    }
+
 
 }
 
@@ -506,6 +553,18 @@ export function lxdDeviceRemove() {
 }
 
 export function lxcDeviceList() {
+
+}
+
+export function lxcPassword(name: string, user: string, password: string) {
+    let setPassword = `lxc exec ${name} -- bash -c "echo ${user}:${password} | chpasswd"`
+    try {
+        execSync(setPassword)
+        console.log("[**] Password created:", password)
+    } catch (err) {
+        console.log("[*] Error generating password")
+        process.exit(1)
+    }
 
 }
 

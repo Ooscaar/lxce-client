@@ -30,7 +30,8 @@ import {
     readLxceConfig,
     writeContainerConfig,
     writeLxceConfig,
-    writeSSHConfig
+    writeSSHConfig,
+    lxcProxy
 } from "../utils/util"
 
 import {
@@ -40,7 +41,6 @@ import {
     Proxy
 } from "../interfaces/interfaces"
 
-import { lxcProxy } from "./proxy";
 import yargs, { string } from "yargs";
 
 // TODO: document it

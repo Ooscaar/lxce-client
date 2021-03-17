@@ -1,7 +1,7 @@
 import { execSync } from "child_process"
 import path from "path"
 import { CONF_FILE, CONTAINER_CONFIG_DIR } from "../constants"
-import { checkDomain, checkInitialized, getName, lxdDNS, readContainerConfig, readLxceConfig } from "../utils/util"
+import { checkDomain, checkInitialized, getContainerName, lxdDNS, readContainerConfig, readLxceConfig, lxcProxy } from "../utils/util"
 import { ContainerConfig, Proxy } from "../interfaces/interfaces"
 import yargs from "yargs"
 import * as fs from "fs"
@@ -16,22 +16,6 @@ import { launchProxies } from "./launch"
 // }
 
 
-// TODO: move function to utils
-export function lxcProxy(name: string, hostPort: number, cHostname: string, proxy: Proxy) {
-    let proxyDevice = `proxy-${proxy.name}`
-    let command = `lxc config device add ${name} ${proxyDevice} proxy\
-    listen=${proxy.type}:${proxy.listen}:${hostPort}\
-    connect=${proxy.type}:${cHostname}:${proxy.port}`
-
-    try {
-        execSync(command)
-        console.log(`[**] added proxy-${proxy.name} `)
-    } catch (err) {
-        console.error(err.message)
-        process.exit(1)
-    }
-
-}
 
 
 function removeProxy(name: string, proxyName: string) {
@@ -139,7 +123,7 @@ function cmdProxy(args: any) {
             process.exit(1)
         }
         console.log("[*] Running only one container")
-        let containerName = getName(args.name, args.domain)
+        let containerName = getContainerName(args.name, args.domain)
         let containerPath = path.join(CONTAINER_CONFIG_DIR, args.domain, containerName)
         let containerConfig = readContainerConfig(containerPath)
         proxy(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)

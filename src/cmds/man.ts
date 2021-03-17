@@ -1,10 +1,10 @@
 import yargs from "yargs"
+import { askQuestion } from "../utils/util"
 
 
 // Install function
 function cmdMan(args: yargs.Arguments) {
     console.log("Not implemented")
-    process.exit(1)
 
 }
 

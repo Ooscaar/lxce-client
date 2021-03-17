@@ -3,7 +3,7 @@ import path from "path"
 import * as fs from "fs"
 import chalk from "chalk"
 import { CONTAINER_CONFIG_DIR, LXCE_DIR, SSH_DIR } from "../constants"
-import { askQuestion, checkAccess, checkDomain, checkInitialized, existName, getContainersAll, getContainersDomain, getDomains, getName, readContainerConfig } from "../utils/util"
+import { askQuestion, checkAccess, checkDomain, checkInitialized, existName, getContainersAll, getContainersDomain, getDomains, getContainerName, readContainerConfig } from "../utils/util"
 import yargs from "yargs"
 import { ContainerConfig } from "../interfaces/interfaces"
 
@@ -165,7 +165,7 @@ async function cmdDelete(args: any) {
             process.exit(1)
         }
 
-        let containerName = getName(args.name, args.domain)
+        let containerName = getContainerName(args.name, args.domain)
         if (!args.yes) {
             const answer = await askQuestion(`Do you want to delete ${containerName}?`)
             if (!answer) {

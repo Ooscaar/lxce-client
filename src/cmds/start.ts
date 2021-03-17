@@ -3,7 +3,7 @@ import * as fs from "fs"
 import path from "path"
 import yargs from "yargs"
 import { CONF_FILE, CONTAINER_CONFIG_DIR } from "../constants"
-import { checkDomain, checkInitialized, getContainersAll, getContainersDomain, getName, readContainerConfig, readLxceConfig } from "../utils/util"
+import { checkDomain, checkInitialized, getContainersAll, getContainersDomain, getContainerName, readContainerConfig, readLxceConfig } from "../utils/util"
 
 
 
@@ -78,7 +78,7 @@ export function cmdStart(args: any) {
             console.log("[*] Example: lxc start -d google -n alice")
             process.exit(1)
         }
-        let containerName = getName(args.name, args.domain)
+        let containerName = getContainerName(args.name, args.domain)
         startContainer(containerName)
         process.exit(0)
     }
