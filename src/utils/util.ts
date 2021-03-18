@@ -442,14 +442,20 @@ export function existName(name: string, domain: string): boolean {
 
 
 // --------------------------------------------------------  //
-// ******************** Lxc actions utils *****************  //
+// ******************** Lxc utils ************************  //
 // --------------------------------------------------------  //
 
 // FIXME: implement them
 
+/**
+ * Launch lxc container with given base and name
+ *
+ * @param name container name
+ * @param base container base
+ */
 export function lxcLaunch(name: string, base: string) {
 
-    let launch = `lxc launch ${base} ${name}`
+    const launch = `lxc launch ${base} ${name}`
     try {
         execSync(launch)
     } catch (err) {
@@ -457,35 +463,57 @@ export function lxcLaunch(name: string, base: string) {
     }
 }
 
-export function lxcStart() {
-
-}
-
-export function lxcStop() {
-
+/**
+ * Start lxc container
+ *
+ * @param name container name
+ */
+export function lxcStart(name: string) {
+    const start = `lxc start ${name}`
+    try {
+        execSync(start)
+    } catch (err) {
+        console.log("[*] Error starting container")
+    }
 }
 
 /**
- * Waits until container is fully initialized
+ * Restart lxc container
  *
- *
+ * @param name container name
  */
-export function lxcWait(name: string) {
-    let wait = `lxc exec ${name} -- cloud-init status -w`
-
+export function lxdRestart(name: string) {
+    let restart = `lxc restart ${name} -f`
     try {
-        execSync(`lxc exec ${name} -- cloud-init status -w`, { stdio: [process.stdin, process.stdout, process.stderr] })
+        execSync(restart)
     } catch (err) {
-        console.log("[*] Error waiting for the container")
-        process.exit(1)
-
+        console.log("[*] Error restarting container")
     }
 
 }
 
+/**
+ * Stop lxc container
+ *
+ * @param name container name
+ */
+export function lxcStop(name: string) {
+    const stop = `lxc start ${name}`
+    try {
+        execSync(stop)
+    } catch (err) {
+        console.log("[*] Error starting container")
+    }
+}
+
+/**
+ * Force delete of a lxc container
+ *
+ * @param name container name
+ */
 export function lxcDelete(name: string) {
     // Stop and delete containers
-    let remove: string = `lxc delete ${name} -f`
+    const remove: string = `lxc delete ${name} -f`
     try {
         console.log(`[**] Removing ${name}`)
         execSync(remove)
@@ -494,11 +522,39 @@ export function lxcDelete(name: string) {
     }
 }
 
-// Perfoms dns resolution inside container
-// to check if *.lxd is working
-// Expected result:
-// awful-yellow.lxd has address 10.10.0.212
-// awful-yellow.lxd has IPv6 address fd42:7c8c:7fab:4125:216:3eff:fe4d:1c95
+
+/**
+ * Waits until container is fully initialized.
+ *
+ * Exits process if there is an error waiting
+ *
+ * @param name container name
+ */
+export function lxcWait(name: string) {
+    const wait = `lxc exec ${name} -- cloud-init status -w`
+    try {
+        // For now print the waiting message from lxc
+        execSync(wait, { stdio: [process.stdin, process.stdout, process.stderr] })
+    } catch (err) {
+        console.log("[*] Error waiting for the container")
+        process.exit(1)
+    }
+
+}
+
+
+/**
+ * Perfoms dns resolution inside container
+ * to check if *.lxd is working
+ *
+ * Expected result:
+ *
+ * -> awful-yellow.lxd has address 10.10.0.212
+ *
+ * -> awful-yellow.lxd has IPv6 address fd42:7c8c:7fab:4125:216:3eff:fe4d:1c95
+ *
+ * @param name container name
+ */
 export function lxdDNS(name: string) {
     try {
         let resolve = execSync(`lxc exec ${name} -- bash -c "host ${name}.lxd"`)
@@ -512,19 +568,42 @@ export function lxdDNS(name: string) {
 
 }
 
-export function lxcExec() {
 
+/**
+ * Executes bash command passed inside container
+ * container given.
+ *
+ * Exits process if the command fails
+ *
+ * @param name container name
+ * @param command command to be executed inside container
+ */
+export function lxcExec(name: string, command: string) {
+    const exec = `lxc exec ${name} -- ${command}`
+    try {
+        execSync(exec)
+    } catch (err) {
+        console.log("[*] Error executing command on container")
+        console.log(`[*] Container: ${name}`)
+        console.log(`[*] Command: ${command}`)
+        process.exit(1)
+    }
 }
 
-export function lxdRestart() {
-
-}
-
-export function lxcProxy(name: string, hostPort: number, cHostname: string, proxy: Proxy) {
+/**
+ * Add the proxy object passed to an existing
+ * lxc container
+ *
+ * @param name container name
+ * @param hostPort local host port to listen on the hypervisor for the proxy mapped
+ * @param hostname TODO!!!
+ * @param proxy proxy object according to configuration file proxy field
+ */
+export function lxcProxy(name: string, hostPort: number, hostname: string, proxy: Proxy) {
     let proxyDevice = `proxy-${proxy.name}`
     let command = `lxc config device add ${name} ${proxyDevice} proxy\
     listen=${proxy.type}:${proxy.listen}:${hostPort}\
-    connect=${proxy.type}:${cHostname}:${proxy.port}`
+    connect=${proxy.type}:${hostname}:${proxy.port}`
 
     try {
         execSync(command)
@@ -536,26 +615,81 @@ export function lxcProxy(name: string, hostPort: number, cHostname: string, prox
 
 }
 
-export function lxcDeviceAdd(name: string, domain: string, hostPath: string, user: string) {
+/**
+ * Add host path folder to and existing
+ * lxc container.
+ *
+ * Exits process if the command fails.
+ *
+ * @param containerName container name
+ * @param deviceName container device name
+ * @param hostPath path to the folder to be exported
+ * @param user container user
+ */
+export function lxcDeviceAdd(containerName: string, deviceName: string, hostPath: string, user: string) {
 
+    let deviceAdd = `lxc config device add ${containerName} ${deviceName} disk source=${hostPath} path="/home/${user}/data-${domain}"`
     try {
-        execSync(`lxc config device add ${name} data-${domain} disk source=${hostPath} path="/home/${user}/data-${domain}"`)
+        execSync(deviceAdd)
     } catch (err) {
         console.log("[*] Error adding device")
         process.exit(1)
     }
-
-
 }
 
-export function lxdDeviceRemove() {
+/**
+ * Remove device inside lxc container
+ *
+ * Exits process if command fails.
+ *
+ * @param containerName container name
+ * @param deviceName lxc device name
+ */
+export function lxdDeviceRemove(containerName: string, deviceName: string) {
 
+    let deviceRemove = `lxc config device remove ${containerName} ${deviceName}`
+    try {
+        execSync(deviceRemove)
+    } catch (err) {
+        console.log("[*] Error removing device")
+        process.exit(1)
+    }
 }
 
-export function lxcDeviceList() {
+/**
+ * Return list of current device names
+ * inside a lxc container.
+ *
+ * Exits process if the command fails
+ *
+ * @param name container name
+ */
+export function lxcDeviceList(name: string): string[] {
 
+    let proxiesNames: string[]
+
+    try {
+
+        proxiesNames = execSync(`lxc config device list ${name}`)
+            .toString()
+            .split("\n")
+        return proxiesNames
+
+    } catch (err) {
+        console.log("Error listing devices inside container")
+        process.exit(1)
+
+    }
 }
 
+/**
+ * Sets password specified to and
+ * existing user inside a lxce container.
+ *
+ * @param name container name
+ * @param user container user
+ * @param password password to be set inside container
+ */
 export function lxcPassword(name: string, user: string, password: string) {
     let setPassword = `lxc exec ${name} -- bash -c "echo ${user}:${password} | chpasswd"`
     try {
@@ -563,7 +697,6 @@ export function lxcPassword(name: string, user: string, password: string) {
         console.log("[**] Password created:", password)
     } catch (err) {
         console.log("[*] Error generating password")
-        process.exit(1)
     }
 
 }
