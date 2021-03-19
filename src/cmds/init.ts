@@ -1,84 +1,152 @@
 import * as fs from "fs"
-import { execSync } from "child_process"
+import path from "path"
+import inquirer from "inquirer"
 
-import { CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, SSH_DIR, BASE_DIR } from "../constants"
-import { checkContainerConfig, checkDefaultConfig } from "../utils/util"
+import {
+    CONF_FILE,
+    CONTAINER_CONFIG_DIR,
+    DEFAULT_CONTAINER_CONF_FILE,
+    SSH_DIR,
+    BASE_DIR,
+    CONTAINER_CONFIG_DEFAULT,
+    CONF_FILE_DATA,
+    SEED_LENGHT,
+    SEED_ENCODING
+} from "../constants"
 
-// Check if init has already been initialized
-// and in negative case, check is the default
-// configurations are correct
-// Then checkAccess to the directories, as write
-// actions will be executed
+import {
+    checkBase,
+    generateSeed,
+    gitInit,
+    writeContainerConfig,
+    writeLxceConfig
+} from "../utils/util"
+
+import {
+    ContainerConfig,
+    LxceConfig
+} from "../interfaces/interfaces"
+
+
+
+// Check permission and if lxce init has been
+// already executed
 function checkInit() {
 
-    // Checking one folder creations is enought
-    if (fs.existsSync(CONTAINER_CONFIG_DIR)) {
-        console.log("[**] Configurations folders detected")
-        console.log("[**] If you want to use init, you should use")
-        console.log("[**] lxce destroy")
-        console.log("[*] Exiting ...")
+    if (fs.existsSync(BASE_DIR)) {
+        console.log(`[*] Existing configuration folder detected at ${BASE_DIR}`)
+        console.log(`[*] Use lxce uninstall`)
         process.exit(1)
     }
 
-    if (!fs.existsSync(CONF_FILE) || !fs.existsSync(DEFAULT_CONTAINER_CONF_FILE)) {
-        console.log("[**] Configurations files missing")
-        console.log("[**] run lxce install")
-        process.exit(1)
-    }
-
-    console.log("[*] checking permissions")
     try {
-        fs.accessSync(BASE_DIR, fs.constants.W_OK)
+        fs.accessSync(path.dirname(BASE_DIR), fs.constants.W_OK)
     } catch (err) {
-        console.log("[*] checking permissions: fail!")
+        console.log(`[*] Error: don't have permissions on ${BASE_DIR}`)
         process.exit(1)
     }
-    console.log("[*] checking permissions: ok!")
-
-    console.log("[*] checking configurations")
-    if (!checkDefaultConfig()) {
-        console.log("[*] checking configurations: fail!")
-        process.exit(1)
-    }
-
-    if (!checkContainerConfig(DEFAULT_CONTAINER_CONF_FILE)) {
-        console.log("[*] checking configurations: fail!")
-        process.exit(1)
-    }
-    console.log("[*] checking configurations: ok!")
 
 }
 
-function init() {
+function init(containerConfig: ContainerConfig, lxceConfig: LxceConfig) {
 
-    fs.mkdirSync(CONTAINER_CONFIG_DIR);
-    console.log("[*] mkdir: container_conf_dir")
+    // First create parent folder (BASE_DIR)
+    // as writeContainerConfig will fail is
+    // parent folder is missing
+    fs.mkdirSync(BASE_DIR)
 
-    fs.mkdirSync(SSH_DIR);
-    console.log("[*] mkdir: ssh_dir")
+    writeContainerConfig(DEFAULT_CONTAINER_CONF_FILE, containerConfig)
 
-    // TODO: init git repository
-    let command = `git init ${SSH_DIR}`
-    try {
-        execSync(command)
+    // Generate seed
+    writeLxceConfig(CONF_FILE, lxceConfig)
 
-    } catch (err) {
-        console.log("[*] Error creating git repository")
-        console.log("[*] Make sure you have git --system configured:")
-        console.log("[*] git config --global -e")
-        console.log("[*] And git init manually", SSH_DIR)
-        process.exit(1)
-    }
-    console.log("[*] git init: ssh_dir")
+    fs.mkdirSync(CONTAINER_CONFIG_DIR)
+    fs.mkdirSync(SSH_DIR)
+
+    gitInit(SSH_DIR)
 
 }
 
 
 // Init function
-function cmdInit(args: any) {
+async function cmdInit(args: any) {
+
     checkInit()
 
-    init()
+    const questions: inquirer.QuestionCollection = [
+        {
+            type: "input",
+            name: "hostname",
+            message: "lxce.conf: Select hypervisor hostname",
+            validate: (answer) => {
+                if (answer) {
+                    // Check valid IP
+                    for (let block of answer.split(".")) {
+                        if ((block < 0) || (block > 255)) {
+                            return "Please enter a valid hostname"
+                        }
+                        continue
+                    }
+                    return true
+                }
+
+                return "Please enter a valid hostname"
+            }
+        },
+        {
+            type: "input",
+            name: "suffix",
+            message: "lxce.conf: Select ssh suffix",
+            validate: (answer) => {
+                if (answer) {
+                    return true
+                }
+
+                return "Please enter a valid suffix"
+            }
+        },
+        {
+            type: "input",
+            name: "base",
+            message: "container.default: Select containers base",
+            default: CONTAINER_CONFIG_DEFAULT.base,
+            validate: (answer) => {
+                if (answer) {
+                    if (checkBase(answer)) {
+                        return true
+                    }
+
+                    return "Base does not exist"
+                }
+
+                return "Please enter a valid base"
+            }
+        },
+        {
+            type: "confirm",
+            name: "bash",
+            message: "Bash completion(TODO)"
+        },
+        {
+            type: "confirm",
+            name: "zsh",
+            message: "Zsh completion(TODO)"
+        }
+    ]
+
+    let containerConfig = CONTAINER_CONFIG_DEFAULT
+    let lxceConfig = CONF_FILE_DATA
+
+    const answers = await inquirer.prompt(questions)
+
+    // Update defaults configurations files with answers
+    containerConfig.base = answers.base
+
+    lxceConfig.hypervisor.SSH_hostname = answers.hostname
+    lxceConfig.hypervisor.SSH_suffix = answers.suffix
+    lxceConfig.seed = generateSeed(SEED_LENGHT, SEED_ENCODING)
+
+    init(containerConfig, lxceConfig)
 
     console.log("[*] Good!!")
     process.exit(0)
@@ -91,7 +159,7 @@ function cmdInit(args: any) {
 // ---------------------
 export const command = "init"
 
-export const describe = "Init configuration files with default values"
+export const describe = "Initialize lxce command"
 
 export const handler = cmdInit
 
