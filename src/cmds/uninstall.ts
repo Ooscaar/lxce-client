@@ -54,6 +54,10 @@ function uninstall() {
         execSync(`rm -rf ${location}`)
     }
 
+    // Remove configuration files
+    execSync(`rm -rf ${BASE_DIR}`)
+    console.log(`[*] Delete ${BASE_DIR}`)
+
 }
 
 // Install function
