@@ -325,9 +325,9 @@ export function checkDomain(domain: string): boolean {
     return lxceConfig.domains.includes(domain)
 }
 
-function checkBase(base: string): boolean {
+export function checkBase(base: string): boolean {
     try {
-        let command = `lxc image ${base}`
+        let command = `lxc image show ${base}`
         execSync(command)
         return true
     } catch (err) {
@@ -628,7 +628,7 @@ export function lxcProxy(name: string, hostPort: number, hostname: string, proxy
  */
 export function lxcDeviceAdd(containerName: string, deviceName: string, hostPath: string, user: string) {
 
-    let deviceAdd = `lxc config device add ${containerName} ${deviceName} disk source=${hostPath} path="/home/${user}/data-${domain}"`
+    let deviceAdd = `lxc config device add ${containerName} ${deviceName} disk source=${hostPath} path="/home/${user}/data-${deviceName}"`
     try {
         execSync(deviceAdd)
     } catch (err) {
@@ -705,8 +705,15 @@ export function lxcPassword(name: string, user: string, password: string) {
 // --------------------------------------------------------  //
 // ******************** Git helper functions *************** //
 // --------------------------------------------------------  //
-export function gitInit() {
+export function gitInit(path: string) {
+    let init = `git init ${path}`
 
+    try {
+        execSync(init)
+    } catch (err) {
+        console.log(`[*] WARNING: error creating git repository at ${path}`)
+
+    }
 
 }
 
