@@ -705,25 +705,43 @@ export function lxcPassword(name: string, user: string, password: string) {
 // --------------------------------------------------------  //
 // ******************** Git helper functions *************** //
 // --------------------------------------------------------  //
+
+/**
+ * Initialize git repostiry at given path
+ *
+ * @param path git directory path
+ */
 export function gitInit(path: string) {
-    let init = `git init ${path}`
+    const init = `git init ${path}`
 
     try {
         execSync(init)
     } catch (err) {
         console.log(`[*] WARNING: error creating git repository at ${path}`)
-
     }
 
 }
 
-export function gitCommit() {
+/**
+ * Commit all current changes at given path
+ *
+ * @param path git directory path
+ * @param message commit message
+ */
+export function gitCommit(path: string, message: string) {
+    const gitAdd = `git -C ${path} add .`
+    const gitCommit = `git -C ${path} commit -m "${message}"`
+
+    try {
+        execSync(gitAdd)
+        execSync(gitCommit)
+    } catch (err) {
+        console.log(`[*] WARNING: error commit changes at ${path}`)
+    }
+
 
 }
 
-export function gitPull() {
-
-}
 
 
 // --------------------------------------------------------  //
