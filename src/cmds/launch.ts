@@ -31,7 +31,9 @@ import {
     writeContainerConfig,
     writeLxceConfig,
     writeSSHConfig,
-    lxcProxy
+    lxcProxy,
+    getDomains,
+    gitCommit
 } from "../utils/util"
 
 import {
@@ -48,11 +50,30 @@ export function getPortNumber(id_container: number, id_domain: number, id_proxy:
     return FIRST_PORT + id_domain * 1000 + id_container * 10 + id_proxy
 }
 
+// Return domain index relative to
+// the existing domain FOLDERS
+//
+// We could also use the index from
+// the list of "/etc/lxce/container.conf.d"
+// but at the moment of a whole domain removal
+// we would get "holes" and the previous
+// proxies ports would not match the index
+//
+// FIXME: case when domain folders is not
+// create yet. In this case sum +1 to the
+// number of domains already created
 function getDomainID(domain: string): number {
-    const lxceConfig = readLxceConfig(CONF_FILE)
-    return lxceConfig.domains.findIndex(elem => elem === domain)
+    const domains = getDomains()
+
+    // If domain exist return the "relative" positions
+    // Otherwhise return last index
+    if (domains.includes(domain)) {
+        return domains.findIndex(elem => elem === domain)
+    }
+    return domains.length
 }
 
+// TODO: rewrite it with utils functions
 function getContainerID(domain: string): number {
     // Read all containers id's from a domain
     let containers_ids: Array<number> = []
@@ -100,14 +121,16 @@ function getContainerID(domain: string): number {
 function sshConfig(ssh: SSH): string {
     let firstLine = `Host ${ssh.suffix}${ssh.name}.${ssh.domain}`
     // Adding one space !!
-    if (ssh.alias) firstLine += ` ${ssh.suffix}${ssh.alias}.${ssh.domain}`
+    if (ssh.alias) firstLine += ` ${ssh.suffix}.${ssh.alias}.${ssh.domain}`
 
-    let config = `${firstLine}
-    Hostname ${ssh.hostname}
-    User ${ssh.user}
-    Port ${ssh.port}
-    TCPKeepAlice yes
-    ServerAliveInterval 300`
+    let config = [
+        `${firstLine}`,
+        `   Hostname ${ssh.hostname}`,
+        `   User ${ssh.user}`,
+        `   Port ${ssh.port}`,
+        `   TCPKeepAlice yes`,
+        `   ServerAliveInterval 300`,
+    ].join("\n")
 
     //console.log(`[**] debug: ${config}`)
 
@@ -212,6 +235,9 @@ function launchConfigurations(name: string, user: string, containerConfig: Conta
             path.join(SSH_DIR, containerConfig.domain, name),
             sshConfig(ssh)
         )
+
+        // Commit container launch
+        gitCommit(SSH_DIR, `launch: ${containerConfig.domain}-${name}`)
 
     } catch (err) {
         console.log(err.message)

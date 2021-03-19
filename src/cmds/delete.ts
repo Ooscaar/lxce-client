@@ -14,7 +14,8 @@ import {
     getDomains,
     getContainerName,
     readContainerConfig,
-    lxcDelete
+    lxcDelete,
+    gitCommit
 } from "../utils/util"
 import { ContainerConfig } from "../interfaces/interfaces"
 
@@ -147,6 +148,7 @@ async function cmdDelete(args: any) {
                 deleteConfigurations(containerConfig, args.force)
             }
         }
+        gitCommit(SSH_DIR, "delete: all containers")
 
         console.log("--------------------------------")
         console.log("[*] Delete all containers: ok!")
@@ -179,6 +181,7 @@ async function cmdDelete(args: any) {
             lxcDelete(containerName)
             deleteConfigurations(containerConfig)
         }
+        gitCommit(SSH_DIR, `delete: containers from ${args.domain}`)
 
         console.log("-----------------------------------------------")
         console.log(`[*] Deleting all containers from ${args.domain}: ok!`)
@@ -205,6 +208,7 @@ async function cmdDelete(args: any) {
         ))
         lxcDelete(containerName)
         deleteConfigurations(containerConfig)
+        gitCommit(SSH_DIR, `delete: ${args.domain}-${containerName}`)
         process.exit(0)
     }
 
