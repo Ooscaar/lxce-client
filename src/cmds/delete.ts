@@ -1,10 +1,21 @@
-import { exec, execSync } from "child_process"
+import { execSync } from "child_process"
 import path from "path"
 import * as fs from "fs"
-import chalk from "chalk"
-import { CONTAINER_CONFIG_DIR, LXCE_DIR, SSH_DIR } from "../constants"
-import { askQuestion, checkAccess, checkDomain, checkInitialized, existName, getContainersAll, getContainersDomain, getDomains, getContainerName, readContainerConfig } from "../utils/util"
 import yargs from "yargs"
+import chalk from "chalk"
+
+import { CONTAINER_CONFIG_DIR, LXCE_DIR, SSH_DIR } from "../constants"
+import {
+    askQuestion,
+    checkAccess,
+    checkDomain,
+    checkInitialized,
+    getContainersDomain,
+    getDomains,
+    getContainerName,
+    readContainerConfig,
+    lxcDelete
+} from "../utils/util"
 import { ContainerConfig } from "../interfaces/interfaces"
 
 function checkDelete(domain: string) {
@@ -35,60 +46,70 @@ function checkDelete(domain: string) {
 
 }
 
-function deleteContainer(name: string) {
-    // Stop and delete containers
-    let remove: string = `lxc delete ${name} -f`
-    try {
-        execSync(remove)
-    } catch (err) {
-        console.log("[*] Error removing containers")
-        process.exit(1)
-    }
-    console.log(`[*] Delete and stop container ${name}`)
-}
+function deleteConfigurations(containerConfig: ContainerConfig, force?: string) {
 
-function deleteConfigurations(containerConfig: ContainerConfig) {
-    // Delete configurations files
-    try {
-        // Configuration file
-        fs.unlinkSync(
-            path.join(
-                CONTAINER_CONFIG_DIR,
-                containerConfig.domain,
-                containerConfig.name
-            )
+    // If last container within domain, remove domain folders
+    // from
+    // - /etc/lxce/container.conf.d/
+    // - /etc/lxce/ssh/
+    if (getContainersDomain(containerConfig.domain).length == 1) {
+        const confPath = path.join(
+            CONTAINER_CONFIG_DIR,
+            containerConfig.domain
         )
-        // SSH config file
-        fs.unlinkSync(
-            path.join(
-                SSH_DIR,
-                containerConfig.domain,
-                containerConfig.name
-            )
+        const sshPath = path.join(
+            SSH_DIR,
+            containerConfig.domain
         )
-        // Shared directories
-        // As we are removing a whole folder, with or
-        // without contents, we use rm -rf
-        let folderPath = path.join(
+        const directoriesPath = path.join(
             containerConfig.userData,
             LXCE_DIR,
             containerConfig.domain,
             containerConfig.name
         )
-        execSync(`rm -rf ${folderPath}`)
-        console.log("[*] Related conf and folders deleted")
 
-    } catch (err) {
-        console.error(err)
-        process.exit(1)
+        // Use rm -rf as we are removing folders recursively
+        try {
+            execSync(`rm -rf ${confPath}`)
+            execSync(`rm -rf ${sshPath}`)
+            execSync(`rm -rf ${directoriesPath}`)
+        } catch (err) {
+            console.log(err.message)
+            process.exit(1)
+        }
 
+    } else {
+        // Just remove configuration files
+        // and container shared directory
+        // Do not remove whole domain folders
+        const confPath = path.join(
+            CONTAINER_CONFIG_DIR,
+            containerConfig.domain,
+            containerConfig.name
+        )
+        const sshPath = path.join(
+            SSH_DIR,
+            containerConfig.domain,
+            containerConfig.name
+        )
+        const directoriesPath = path.join(
+            containerConfig.userData,
+            LXCE_DIR,
+            containerConfig.domain,
+            containerConfig.name
+        )
+
+        try {
+            fs.unlinkSync(confPath)
+            fs.unlinkSync(sshPath)
+            execSync(`rm -rf ${directoriesPath}`)
+        } catch (err) {
+            console.log(err.message)
+            process.exit(1)
+        }
     }
-
 }
 
-// Only works with name, as it ensures
-// be more specific for the container
-// to remove
 // async: in order to use inquirer nicely
 async function cmdDelete(args: any) {
 
@@ -122,8 +143,8 @@ async function cmdDelete(args: any) {
                         containerName
                     )
                 )
-                deleteContainer(containerName)
-                deleteConfigurations(containerConfig)
+                lxcDelete(containerName)
+                deleteConfigurations(containerConfig, args.force)
             }
         }
 
@@ -135,7 +156,12 @@ async function cmdDelete(args: any) {
     // --domain | --domain --name
     if (args.domain && !args.name) {
         if (!args.yes) {
-            const answer = await askQuestion(`Do you want to delete ALL containers from ${args.domain}?`)
+            let question = [
+                `Do you want to delete ALL containers from ${args.domain}?`,
+                getContainersDomain(args.domain).join("\n"),
+            ].join("\n")
+
+            const answer = await askQuestion(question)
             if (!answer) {
                 process.exit(1)
             }
@@ -150,7 +176,7 @@ async function cmdDelete(args: any) {
                 containerName
             ))
             console.log(chalk.bold(`${containerName}`))
-            deleteContainer(containerName)
+            lxcDelete(containerName)
             deleteConfigurations(containerConfig)
         }
 
@@ -177,7 +203,7 @@ async function cmdDelete(args: any) {
             args.domain,               // domain passed
             containerName
         ))
-        deleteContainer(containerName)
+        lxcDelete(containerName)
         deleteConfigurations(containerConfig)
         process.exit(0)
     }
@@ -220,6 +246,14 @@ export const builder = {
     },
     "yes": {
         alias: "y",
+        describe: "yes to questions",
+        demand: false,
+        type: "boolean",
+        nargs: 0,
+    },
+    "force": {
+        alias: "f",
+        describe: "force the removal of shared domain directory",
         demand: false,
         type: "boolean",
         nargs: 0,
