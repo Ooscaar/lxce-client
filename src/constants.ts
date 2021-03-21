@@ -34,7 +34,10 @@ export const CONF_FILE_DATA: LxceConfig = {
     "seed": "",
     "domains":
         [
-            "default",
+            {
+                id: 0,
+                name: "default"
+            }
         ],
     "locations":
         [

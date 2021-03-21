@@ -176,12 +176,16 @@ const typeMap: any = {
     "LxceConfig": o([
         { json: "hypervisor", js: "hypervisor", typ: r("Hypervisor") },
         { json: "seed", js: "seed", typ: "" },
-        { json: "domains", js: "domains", typ: a("") },
+        { json: "domains", js: "domains", typ: a(r("Domain")) },
         { json: "locations", js: "locations", typ: a("") },
     ], false),
     "Hypervisor": o([
         { json: "SSH_hostname", js: "SSH_hostname", typ: "" },
         { json: "SSH_suffix", js: "SSH_suffix", typ: "" },
+    ], false),
+    "Domain": o([
+        { json: "id", js: "id", typ: 0 },
+        { json: "name", js: "name", typ: "" },
     ], false),
     "ContainerConfig": o([
         { json: "name", js: "name", typ: "" },

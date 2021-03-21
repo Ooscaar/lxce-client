@@ -1,13 +1,18 @@
 export interface LxceConfig {
     hypervisor: Hypervisor,
     seed: string,
-    domains: string[],
+    domains: Domain[],
     locations: string[],
 }
 
 export interface Hypervisor {
     SSH_hostname: string,
     SSH_suffix: string
+}
+
+export interface Domain {
+    id: number,
+    name: string
 }
 
 export interface ContainerConfig {
