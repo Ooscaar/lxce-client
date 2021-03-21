@@ -81,6 +81,10 @@ async function cmdInit(args: any) {
             validate: (answer) => {
                 if (answer) {
                     // Check valid IP
+                    if (answer.split(".").length !== 4) {
+                        return "Please enter a valid hostname"
+                    }
+
                     for (let block of answer.split(".")) {
                         if ((block < 0) || (block > 255)) {
                             return "Please enter a valid hostname"
