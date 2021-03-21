@@ -140,10 +140,20 @@ export function getDomains(): string[] {
 /**
  * Return all containers names from specific domain
  *
+ * If domain does not exist, return an empty list
+ *
  * @param domain Container domain
  */
 export function getContainersDomain(domain: string): string[] {
-    return fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))
+    try {
+        return fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, domain))
+    } catch (err) {
+        if (err.code === "ENOENT") {
+            return []
+        }
+        throw err
+
+    }
 
 }
 /**
