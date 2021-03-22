@@ -160,7 +160,7 @@ async function cmdDelete(args: any) {
     }
 
     // --domain | --domain --name
-    if (args.domain && !args.name) {
+    if (args.domain && !args.name && !args.alias) {
         if (!args.yes) {
             let question = [
                 `Do you want to delete ALL containers from ${args.domain}?`,
@@ -198,7 +198,7 @@ async function cmdDelete(args: any) {
             process.exit(1)
         }
 
-        let containerName = getContainerName(args.name, args.domain)
+        let containerName = getContainerName(args.alias ?? args.name, args.domain)
         if (!args.yes) {
             const answer = await askQuestion(`Do you want to delete ${containerName}?`)
             if (!answer) {
@@ -252,6 +252,13 @@ export const builder = {
         type: 'string',
         nargs: 1,
     },
+    "alias": {
+        alias: 'a',
+        describe: 'container alias',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
     "yes": {
         alias: "y",
         describe: "yes to questions",
@@ -259,11 +266,11 @@ export const builder = {
         type: "boolean",
         nargs: 0,
     },
-    "force": {
-        alias: "f",
-        describe: "force the removal of shared domain directory",
-        demand: false,
-        type: "boolean",
-        nargs: 0,
-    },
+    // "force": {
+    //     alias: "f",
+    //     describe: "force the removal of shared domain directory",
+    //     demand: false,
+    //     type: "boolean",
+    //     nargs: 0,
+    // },
 }

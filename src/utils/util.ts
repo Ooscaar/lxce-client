@@ -246,7 +246,7 @@ function getNamefromAlias(alias: string, domain: string): string {
  * provided within a domain.
  *
  *
- * @param argsName Container alias or full name
+ * @param argsName Container alias or container name
  * @param domain Container domain
  */
 export function getContainerName(argsName: string, domain: string): string {
@@ -378,7 +378,15 @@ export function checkDefaultConfig(): boolean {
 }
 
 export function checkDomain(domain: string): boolean {
-    return getDomains().includes(domain)
+    const lxceConfig = readLxceConfig(CONF_FILE)
+
+    for (const elem of lxceConfig.domains) {
+        if (elem.name === domain) {
+            return true
+        }
+    }
+
+    return false
 }
 
 export function checkBase(base: string): boolean {
@@ -472,7 +480,7 @@ export function existAlias(argAlias: string | Array<string>, domain: string): bo
 
         for (const cAlias of alias) {
             if (existingAlias.includes(cAlias)) {
-                console.log("[**] exisiting alias:", cAlias)
+                //console.log("[**] exisiting alias:", cAlias)
                 return true
             }
         }
@@ -590,7 +598,8 @@ export function lxcWait(name: string) {
     const wait = `lxc exec ${name} -- cloud-init status -w`
     try {
         // For now print the waiting message from lxc
-        execSync(wait, { stdio: [process.stdin, process.stdout, process.stderr] })
+        console.log("[*] waiting for container")
+        execSync(wait)
     } catch (err) {
         console.log("[*] Error waiting for the container")
         process.exit(1)

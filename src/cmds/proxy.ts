@@ -123,7 +123,7 @@ function cmdProxy(args: any) {
             process.exit(1)
         }
         console.log("[*] Running only one container")
-        let containerName = getContainerName(args.name, args.domain)
+        let containerName = getContainerName(args.alias ?? args.name, args.domain)
         let containerPath = path.join(CONTAINER_CONFIG_DIR, args.domain, containerName)
         let containerConfig = readContainerConfig(containerPath)
         proxy(containerName, lxceConfig.hypervisor.SSH_hostname, containerConfig)
@@ -162,6 +162,13 @@ export const builder = {
     "name": {
         alias: 'n',
         describe: 'Container name',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
+    "alias": {
+        alias: 'a',
+        describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,

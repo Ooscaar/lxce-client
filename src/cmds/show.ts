@@ -85,7 +85,7 @@ function cmdShow(args: any) {
             console.log("[*] Example: lxce show -d google -n alice")
             process.exit(1)
         }
-        let containerName = getContainerName(args.name, args.domain)
+        let containerName = getContainerName(args.alias ?? args.name, args.domain)
         show(containerName, args.domain)
         process.exit(0)
     }
@@ -119,6 +119,13 @@ export const builder = {
     "name": {
         alias: 'n',
         describe: 'Container name',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
+    "alias": {
+        alias: 'a',
+        describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,

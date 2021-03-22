@@ -90,7 +90,7 @@ function cmdStop(args: any) {
             process.exit(1)
         }
         console.log("[*] Running only one container")
-        let containerName = getContainerName(args.name, args.domain)
+        let containerName = getContainerName(args.alias ?? args.name, args.domain)
         stopContainer(containerName)
         process.exit(0)
     }
@@ -127,6 +127,13 @@ export const builder = {
     "name": {
         alias: 'n',
         describe: 'Container name',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
+    "alias": {
+        alias: 'a',
+        describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,

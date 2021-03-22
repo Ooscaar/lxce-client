@@ -76,7 +76,7 @@ function cmdPass(args: any) {
             console.log("[*] Example: lxc start -d google -n alice")
             process.exit(1)
         }
-        let containerName = getContainerName(args.name, args.domain)
+        let containerName = getContainerName(args.alias ?? args.name, args.domain)
         pass(containerName, args.domain, seed)
         process.exit(0)
     }
@@ -110,6 +110,13 @@ export const builder = {
     "name": {
         alias: 'n',
         describe: 'Container name',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+    },
+    "alias": {
+        alias: 'a',
+        describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,

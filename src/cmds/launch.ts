@@ -1,7 +1,7 @@
 import * as fs from "fs"
 import path from "path";
-import { hostname } from "os";
-import { exec, execSync } from "child_process"
+import { execSync } from "child_process"
+import chalk from "chalk"
 
 import { uniqueNamesGenerator } from 'unique-names-generator';
 
@@ -29,24 +29,22 @@ import {
     readContainerConfig,
     readLxceConfig,
     writeContainerConfig,
-    writeLxceConfig,
     writeSSHConfig,
     lxcProxy,
-    getDomains,
     gitCommit,
     checkDomain,
     addDomain,
-    getDomainId
+    getDomainId,
+    existName
 } from "../utils/util"
 
 import {
     ContainerConfig,
     LxceConfig,
-    SSH,
-    Proxy
+    SSH
 } from "../interfaces/interfaces"
 
-import yargs, { string } from "yargs";
+import yargs from "yargs";
 
 // TODO: document it
 export function getPortNumber(id_container: number, id_domain: number, id_proxy: number): number {
@@ -162,7 +160,8 @@ function launchContainer(name: string, base: string, seed: string): string {
     // ---------
     try {
         execSync(`lxc launch ${base} ${name}`)
-        execSync(`lxc exec ${name} -- cloud-init status -w`, { stdio: [process.stdin, process.stdout, process.stderr] })
+        console.log("[**] waiting for container...")
+        execSync(`lxc exec ${name} -- cloud-init status -w`)
 
         let user = getUserContainer(name)
         let password = generatePassword(seed, name, user)
@@ -310,19 +309,24 @@ function launch(containerConfig: ContainerConfig, lxceConfig: LxceConfig, name: 
 // Command launch
 export function cmdLaunch(args: any) {
 
-    // Match alias with containers
-    // Names ---> alias!!
-    // CAUTION: Names: Array<String>
-    if (args.names) {
-        if (args.names.length != args.range) {
-            yargs.showHelp()
-            console.log("")
+
+    // Match aliases with containers
+    if (args.aliases) {
+        if (args.aliases.length != args.range) {
             console.log("Number of names does not match number of containers")
             process.exit(1)
         }
 
-        if (existAlias(args.names, args.domain)) {
+        if (existAlias(args.aliases, args.domain)) {
             yargs.showHelp()
+            process.exit(1)
+        }
+    }
+
+    // Match names with containers
+    if (args.names) {
+        if (args.names.length != args.range) {
+            console.log("Number of names does not match number of containers")
             process.exit(1)
         }
     }
@@ -348,20 +352,20 @@ export function cmdLaunch(args: any) {
         const lxceConfig = readLxceConfig(CONF_FILE)
 
         for (let i = 0; i < args.range; i++) {
-            let randonName = uniqueNamesGenerator(NAMES_CONFIG)
+            let randonName = args.names ? args.names[i] : uniqueNamesGenerator(NAMES_CONFIG)
 
             // In order to have a copy of the object
             let containerConfig = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
 
             containerConfig.name = randonName
-            containerConfig.alias = args.names ? args.names[i] : ""
+            containerConfig.alias = args.aliases ? args.aliases[i] : ""
             containerConfig.domain = args.domain
             containerConfig.id_domain = getDomainId(args.domain) ?? 0       // TODO: manage the undefined
             containerConfig.id_container = getContainerId(args.domain)
 
-            console.log("[*] Launching container with", randonName)
+            console.log(chalk.bold("[*] Launching container with", randonName))
             launch(containerConfig, lxceConfig, randonName)
-            console.log("[\u2713] Launching container with", randonName)
+            console.log(chalk.bold(`${chalk.green("[\u2713]")} Launching container with ${randonName}`))
         }
 
         console.log("[*] --------------------------------------------------------------")
@@ -385,27 +389,42 @@ export const describe = "Launch containers from a specific domain"
 
 export const handler = cmdLaunch
 
-export const builder = {
-    // NAMES!!, as is an array
-    "names": {
-        alias: 'n',
-        describe: 'Names/name of the containers/container',
-        demand: false,
-        type: 'array',
-    },
-    "domain": {
+
+export const builder = (yargs: any) => {
+    yargs.usage("Usage: $0 launch <options> <flags>")
+    yargs.strict()
+    yargs.option("domain", {
         alias: "d",
-        describe: "Domain for the container",
+        describe: "domain for the container/containers",
         demand: true,
         type: "string",
         nargs: 1
-    },
-    "range": {
+    })
+    yargs.option("range", {
         alias: "r",
         describe: "range of container (ex: -r 5)",
         demand: false,
         type: "number",
         default: 1,
         nargs: 1
-    }
+    })
+    yargs.option("names", {
+        alias: 'n',
+        describe: 'names/name of the containers/container',
+        demand: false,
+        type: 'array',
+    })
+    yargs.option("aliases", {
+        alias: 'a',
+        describe: 'aliases/alias of the containers/container',
+        demand: false,
+        type: 'array',
+    })
+    yargs.example([
+        ["$0 launch -d google", "Launch one container within google with a random name"],
+        ["$0 rebase -d google -r 3", "Launch three containers within google with randon names"],
+        ["$0 rebase -d google -r 3 -n back front base", "Launch three containers within google with specified names"],
+        ["$0 rebase -d google -r 3 -n back front base -a alice bob eve", "Launch three containers with names and alias specified"],
+        ["$0 rebase -d google -r 3 -a alice bob eve", "Launch three containers with random names and alias specified"],
+    ])
 }
