@@ -15,7 +15,8 @@ import {
     getContainerName,
     readContainerConfig,
     lxcDelete,
-    gitCommit
+    gitCommit,
+    deleteDomain
 } from "../utils/util"
 import { ContainerConfig } from "../interfaces/interfaces"
 
@@ -78,6 +79,9 @@ function deleteConfigurations(containerConfig: ContainerConfig, force?: string) 
             console.log(err.message)
             process.exit(1)
         }
+
+        // Update domains
+        deleteDomain(containerConfig.domain)
 
     } else {
         // Just remove configuration files
