@@ -1,11 +1,8 @@
-###-begin-lxce-completions-###
+# lxce completion script
 #
-# yargs command completion script
+# Installation: lxce completion >> ~/.zshrc
 #
-# Installation: /usr/sbin/lxce completion >> ~/.zshrc
-#    or /usr/sbin/lxce completion >> ~/.zsh_profile on OSX.
-#
-_lxce_yargs_completions()
+_lxce()
 {
   local reply
   local si=$IFS
@@ -14,6 +11,5 @@ _lxce_yargs_completions()
   IFS=$si
   _describe 'values' reply
 }
-compdef _lxce_yargs_completions lxce
-###-end-lxce-completions-###
+compdef _lxce lxce
 
