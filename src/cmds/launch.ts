@@ -33,7 +33,10 @@ import {
     writeSSHConfig,
     lxcProxy,
     getDomains,
-    gitCommit
+    gitCommit,
+    checkDomain,
+    addDomain,
+    getDomainId
 } from "../utils/util"
 
 import {
@@ -50,31 +53,8 @@ export function getPortNumber(id_container: number, id_domain: number, id_proxy:
     return FIRST_PORT + id_domain * 1000 + id_container * 10 + id_proxy
 }
 
-// Return domain index relative to
-// the existing domain FOLDERS
-//
-// We could also use the index from
-// the list of "/etc/lxce/container.conf.d"
-// but at the moment of a whole domain removal
-// we would get "holes" and the previous
-// proxies ports would not match the index
-//
-// FIXME: case when domain folders is not
-// create yet. In this case sum +1 to the
-// number of domains already created
-function getDomainID(domain: string): number {
-    const domains = getDomains()
-
-    // If domain exist return the "relative" positions
-    // Otherwhise return last index
-    if (domains.includes(domain)) {
-        return domains.findIndex(elem => elem === domain)
-    }
-    return domains.length
-}
-
 // TODO: rewrite it with utils functions
-function getContainerID(domain: string): number {
+function getContainerId(domain: string): number {
     // Read all containers id's from a domain
     let containers_ids: Array<number> = []
 
@@ -172,13 +152,6 @@ function checkLaunch(domain: string) {
         process.exit(1)
     }
 
-    // Adding domain to general conf
-    // FIXME: should be in another place??
-    let lxceConfig = readLxceConfig(CONF_FILE)
-    if (!lxceConfig.domains.includes(domain)) {
-        lxceConfig.domains.push(domain)
-        writeLxceConfig(CONF_FILE, lxceConfig)
-    }
 
     console.log("[*] Checks: ok!")
 
@@ -365,10 +338,17 @@ export function cmdLaunch(args: any) {
     // const configContainer = readJSON(DEFAULT_CONTAINER_CONF_FILE)
     // const configLXCE = readJSON(CONF_FILE)
     try {
+
+        // If domain does not exist, add it to the configuration file
+        // with the first available domain id
+        if (!checkDomain(args.domain)) {
+            addDomain(args.domain)
+        }
+
         const lxceConfig = readLxceConfig(CONF_FILE)
 
         for (let i = 0; i < args.range; i++) {
-            let randonName: string = uniqueNamesGenerator(NAMES_CONFIG)
+            let randonName = uniqueNamesGenerator(NAMES_CONFIG)
 
             // In order to have a copy of the object
             let containerConfig = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
@@ -376,8 +356,8 @@ export function cmdLaunch(args: any) {
             containerConfig.name = randonName
             containerConfig.alias = args.names ? args.names[i] : ""
             containerConfig.domain = args.domain
-            containerConfig.id_domain = getDomainID(args.domain)
-            containerConfig.id_container = getContainerID(args.domain)
+            containerConfig.id_domain = getDomainId(args.domain) ?? 0       // TODO: manage the undefined
+            containerConfig.id_container = getContainerId(args.domain)
 
             console.log("[*] Launching container with", randonName)
             launch(containerConfig, lxceConfig, randonName)

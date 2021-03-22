@@ -130,8 +130,55 @@ export function writeSSHConfig(filePath: string, sshConfig: string, encoding = "
 // ********************* ALIAS-NAMES-USER-DOMAINS *****************  //
 // ----------------------------------------------------------------  //
 
+export function addDomain(domain: string) {
+    let lxceConfig = readLxceConfig(CONF_FILE)
+
+    // Find first hole
+    const ids = lxceConfig.domains.map(item => item.id)
+    let counter = 0
+    let container_id = 0
+    for (let id of ids) {
+        if (id !== counter) {
+            container_id = counter
+            break
+        }
+        counter += 1
+    }
+    container_id = counter
+
+    lxceConfig.domains.push({
+        id: container_id,
+        name: domain
+    })
+
+    // Update lxce.conf
+    writeLxceConfig(CONF_FILE, lxceConfig)
+}
+
+
+export function deleteDomain(domain: string) {
+    let lxceConfig = readLxceConfig(CONF_FILE)
+
+    // Filter domains (a bit ugly)
+    let domainsFiltered = lxceConfig.domains.filter(elem => elem.name !== domain)
+    lxceConfig.domains = domainsFiltered
+
+    // Update lxce.conf
+    writeLxceConfig(CONF_FILE, lxceConfig)
+}
+
+// TODO: manage if its undefined
+export function getDomainId(domain: string): number | undefined {
+    const lxceConfig = readLxceConfig(CONF_FILE)
+
+    const elem = lxceConfig.domains.find(elem => elem.name === domain)
+    return elem?.id
+}
+
 /**
- * Return all container domains
+ * Return all current domains
+ * based on the existing folders
+ * located on container.conf.d
  */
 export function getDomains(): string[] {
     return fs.readdirSync(CONTAINER_CONFIG_DIR)
@@ -331,8 +378,7 @@ export function checkDefaultConfig(): boolean {
 }
 
 export function checkDomain(domain: string): boolean {
-    const lxceConfig = readLxceConfig(CONF_FILE)
-    return lxceConfig.domains.includes(domain)
+    return getDomains().includes(domain)
 }
 
 export function checkBase(base: string): boolean {
@@ -638,9 +684,10 @@ export function lxcProxy(name: string, hostPort: number, hostname: string, proxy
  */
 export function lxcDeviceAdd(containerName: string, deviceName: string, hostPath: string, user: string) {
 
-    let deviceAdd = `lxc config device add ${containerName} ${deviceName} disk source=${hostPath} path="/home/${user}/data-${deviceName}"`
+    let deviceAdd = `lxc config device add ${containerName} data-${deviceName} disk source=${hostPath} path="/home/${user}/data-${deviceName}"`
     try {
         execSync(deviceAdd)
+        console.log(`[**] added data-${deviceName} `)
     } catch (err) {
         console.log("[*] Error adding device")
         process.exit(1)
