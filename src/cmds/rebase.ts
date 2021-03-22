@@ -6,7 +6,7 @@ import * as http from "http"
 import { resolve } from "node:path"
 import { rejects } from "node:assert"
 import { POINT_CONVERSION_COMPRESSED } from "node:constants"
-import { CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, LXCE_DIR } from "../constants"
+import { CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, LXCE_DIR, SHARED_FOLDER } from "../constants"
 import { getPortNumber } from "./launch"
 
 function checkRebase() {
@@ -71,8 +71,8 @@ function rebase(name: string, domain: string, newBase: string, seed: string, hos
     }
     // Directories
     const containerDirectoryPath = path.join(containerConfig.userData, LXCE_DIR, domain, name)
-    const sharedDirectoryPath = path.join(containerConfig.userData, LXCE_DIR, domain)
-    lxcDeviceAdd(name, domain, containerDirectoryPath, newUser)
+    const sharedDirectoryPath = path.join(containerConfig.userData, LXCE_DIR, domain, SHARED_FOLDER)
+    lxcDeviceAdd(name, newUser, containerDirectoryPath, newUser)
     lxcDeviceAdd(name, domain, sharedDirectoryPath, newUser)
     lxdDNS(name)
 
@@ -154,7 +154,7 @@ async function cmdRebase(args: any) {
     let containerName = getContainerName(args.alias ?? args.name, args.domain)
 
     if (!args.yes) {
-        const answer = await askQuestion(`Do you want to rebase ALL containers within ${args.domain} with ${newBase}?`)
+        const answer = await askQuestion(`Do you want to rebase ${containerName} container within ${args.domain} with ${newBase}?`)
         if (!answer) {
             process.exit(1)
         }
