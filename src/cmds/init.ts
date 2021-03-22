@@ -26,6 +26,7 @@ import {
     ContainerConfig,
     LxceConfig
 } from "../interfaces/interfaces"
+import { execSync } from "child_process"
 
 
 
@@ -151,6 +152,20 @@ async function cmdInit(args: any) {
     lxceConfig.seed = generateSeed(SEED_LENGHT, SEED_ENCODING)
 
     init(containerConfig, lxceConfig)
+
+    // Install bash/zsh completions
+
+    // Bash
+    if (answers.bash) {
+        const dir = execSync("pkg-config --variable=completions bash-completion").toString()
+        const pathBash = path.join(dir, "lxce")
+        const bashCompletion = fs.readFileSync("../../completions/completion.bash")
+
+        fs.writeFileSync(pathBash, bashCompletion)
+        console.log(`[*] added bash completion on ${pathBash}`)
+    }
+    // Zsh - TODO
+
 
     console.log("[*] Good!!")
     process.exit(0)
