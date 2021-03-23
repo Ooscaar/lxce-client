@@ -392,10 +392,10 @@ export function checkDomain(domain: string): boolean {
 export function checkBase(base: string): boolean {
     try {
         let command = `lxc image show ${base}`
-        execSync(command)
+        execSync(command, { stdio: "ignore" })
         return true
     } catch (err) {
-        console.log("[**] base does not exist")
+        //console.log("[**] base does not exist")
         return false
     }
 }
@@ -521,6 +521,7 @@ export function lxcLaunch(name: string, base: string) {
 
     const launch = `lxc launch ${base} ${name}`
     try {
+        console.log(`[**] launching container with base: ${base} ...`)
         execSync(launch)
     } catch (err) {
         console.log("[*] Error launching container")
@@ -598,7 +599,7 @@ export function lxcWait(name: string) {
     const wait = `lxc exec ${name} -- cloud-init status -w`
     try {
         // For now print the waiting message from lxc
-        console.log("[*] waiting for container")
+        console.log("[**] waiting for container")
         execSync(wait)
     } catch (err) {
         console.log("[*] Error waiting for the container")
@@ -803,6 +804,7 @@ export function gitCommit(path: string, message: string) {
         execSync(gitCommit)
     } catch (err) {
         console.log(`[*] WARNING: error commit changes at ${path}`)
+        console.log("Error: ", err.message)
     }
 
 

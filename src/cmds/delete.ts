@@ -1,10 +1,10 @@
-import { execSync } from "child_process"
+import { exec, execSync } from "child_process"
 import path from "path"
 import * as fs from "fs"
 import yargs from "yargs"
 import chalk from "chalk"
 
-import { CONTAINER_CONFIG_DIR, LXCE_DIR, SSH_DIR } from "../constants"
+import { CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, LXCE_DIR, SSH_DIR } from "../constants"
 import {
     askQuestion,
     checkAccess,
@@ -48,7 +48,7 @@ function checkDelete(domain: string) {
 
 }
 
-function deleteConfigurations(containerConfig: ContainerConfig, force?: string) {
+function deleteConfigurations(containerConfig: ContainerConfig, force: boolean) {
 
     // If last container within domain, remove domain folders
     // from
@@ -63,12 +63,25 @@ function deleteConfigurations(containerConfig: ContainerConfig, force?: string) 
             SSH_DIR,
             containerConfig.domain
         )
-        const directoriesPath = path.join(
-            containerConfig.userData,
-            LXCE_DIR,
-            containerConfig.domain,
-            containerConfig.name
-        )
+
+        // If forced is passed, removed all domain folder
+        // with shared folder included
+        let directoriesPath: string
+        if (force) {
+            directoriesPath = path.join(
+                containerConfig.userData,
+                LXCE_DIR,
+                containerConfig.domain,
+            )
+        } else {
+            directoriesPath = path.join(
+                containerConfig.userData,
+                LXCE_DIR,
+                containerConfig.domain,
+                containerConfig.name
+            )
+
+        }
 
         // Use rm -rf as we are removing folders recursively
         try {
@@ -141,17 +154,25 @@ async function cmdDelete(args: any) {
         // Loop over the domains, as domain is needed
         for (let domain of getDomains()) {
             for (let containerName of getContainersDomain(domain)) {
-                let containerConfig = readContainerConfig(
-                    path.join(
-                        CONTAINER_CONFIG_DIR,
-                        domain,                 // loop domain
-                        containerName
-                    )
-                )
                 lxcDelete(containerName)
-                deleteConfigurations(containerConfig, args.force)
+                //deleteConfigurations(containerConfig)
             }
         }
+
+        // Delete all contents within configurations folders and
+        // shared directories folders
+        try {
+            const containerDefaultConfig = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
+
+            execSync(`rm -rf ${path.join(SSH_DIR, "*")}`)
+            execSync(`rm -rf ${path.join(CONTAINER_CONFIG_DIR, "*")}`)
+            execSync(`rm -rf ${path.join(containerDefaultConfig.userData, "*")}`)
+        } catch (err) {
+            console.log("Error: removing configuration folders")
+            process.exit(1)
+        }
+
+        // Commit changes
         gitCommit(SSH_DIR, "delete: all containers")
 
         console.log("--------------------------------")
@@ -161,16 +182,25 @@ async function cmdDelete(args: any) {
 
     // --domain | --domain --name
     if (args.domain && !args.name && !args.alias) {
+        let force = true
+
+        // Questions
         if (!args.yes) {
-            let question = [
+            let firstQuestion = [
                 `Do you want to delete ALL containers from ${args.domain}?`,
                 getContainersDomain(args.domain).join("\n"),
             ].join("\n")
 
-            const answer = await askQuestion(question)
-            if (!answer) {
+            const firstAnswer = await askQuestion(firstQuestion)
+            if (!firstAnswer) {
                 process.exit(1)
             }
+
+            let secondQuestion = "Do you want to delete the shared folder also?"
+
+            const secondAnswer = await askQuestion(secondQuestion)
+            force = secondAnswer ? true : false
+
         }
         console.log(`[*] Deleting all containers from ${args.domain}`)
         console.log("-----------------------------------------------")
@@ -183,7 +213,7 @@ async function cmdDelete(args: any) {
             ))
             console.log(chalk.bold(`${containerName}`))
             lxcDelete(containerName)
-            deleteConfigurations(containerConfig)
+            deleteConfigurations(containerConfig, force)
         }
         gitCommit(SSH_DIR, `delete: containers from ${args.domain}`)
 
@@ -199,11 +229,28 @@ async function cmdDelete(args: any) {
         }
 
         let containerName = getContainerName(args.alias ?? args.name, args.domain)
+        let force = true
+        // Questions
         if (!args.yes) {
             const answer = await askQuestion(`Do you want to delete ${containerName}?`)
             if (!answer) {
                 process.exit(1)
             }
+
+            force = false   // if yes not specified, force false by default
+
+            // If last container, ask the question
+            if (getContainersDomain(args.domain).length == 1) {
+                const question = [
+                    "Last container within domain detected",
+                    "  Do you want to delete the shared folder also?",
+                ].join("\n")
+
+                const answer = await askQuestion(question)
+                force = answer ? true : false
+            }
+
+
         }
         let containerConfig = readContainerConfig(path.join(
             CONTAINER_CONFIG_DIR,
@@ -211,7 +258,7 @@ async function cmdDelete(args: any) {
             containerName
         ))
         lxcDelete(containerName)
-        deleteConfigurations(containerConfig)
+        deleteConfigurations(containerConfig, force)
         gitCommit(SSH_DIR, `delete: ${args.domain}-${containerName}`)
         process.exit(0)
     }
@@ -236,7 +283,8 @@ export const builder = {
         describe: "apply to all containers",
         demand: false,
         type: "boolean",
-        nargs: 0
+        nargs: 0,
+        group: "Options"
     },
     "domain": {
         alias: 'd',
@@ -244,6 +292,7 @@ export const builder = {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     },
     "name": {
         alias: 'n',
@@ -251,6 +300,7 @@ export const builder = {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     },
     "alias": {
         alias: 'a',
@@ -258,6 +308,7 @@ export const builder = {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     },
     "yes": {
         alias: "y",
@@ -265,12 +316,6 @@ export const builder = {
         demand: false,
         type: "boolean",
         nargs: 0,
+        group: "Options"
     },
-    // "force": {
-    //     alias: "f",
-    //     describe: "force the removal of shared domain directory",
-    //     demand: false,
-    //     type: "boolean",
-    //     nargs: 0,
-    // },
 }
