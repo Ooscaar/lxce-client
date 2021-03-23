@@ -88,7 +88,8 @@ export const LIST_PARAMETERS: { [param: string]: string } = {
     "4": "ipv4",
     "6": "ipv6",
     "s": "status",
-    "d": "domain"
+    "d": "domain",
+    "c": "cpu"
 }
 
 // The keys are the options passed to the command
