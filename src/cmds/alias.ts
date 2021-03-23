@@ -1,8 +1,9 @@
 import yargs from "yargs"
-import { checkAccess, checkDomain, checkInitialized, existAlias, getContainerName, readContainerConfig, writeContainerConfig } from "../utils/util"
-import { CONTAINER_CONFIG_DIR } from "../constants"
+import { checkAccess, checkDomain, checkInitialized, existAlias, getContainerName, gitCommit, readContainerConfig, readLxceConfig, writeContainerConfig } from "../utils/util"
+import { CONF_FILE, CONTAINER_CONFIG_DIR, SSH_DIR } from "../constants"
 import path from "path"
 import log from "loglevel"
+import { readFileSync, writeFileSync } from "fs"
 
 
 
@@ -59,6 +60,28 @@ function cmdAliasSet(args: any) {
     writeContainerConfig(containerPath, containerConfig)
     log.info(`[*] set container: ${containerName} --> alias: ${args.alias} `)
 
+    // Change ssh configuration file
+    const lxceConfig = readLxceConfig(CONF_FILE)
+    const sshPath = path.join(
+        SSH_DIR,
+        args.domain,
+        containerName
+    )
+    let ssh = readFileSync(sshPath, "utf-8")
+        .split("\n")
+        .map(line => {
+            if (line.startsWith("Host")) {
+                return `${line} ${lxceConfig.hypervisor.SSH_suffix}.${args.domain}.${args.alias}`
+            }
+            return line
+        })
+        .join("\n")
+    writeFileSync(sshPath, ssh)
+    gitCommit(SSH_DIR, `alias-set: ${args.domain}-${containerName}`)
+    log.info("[*] Updated ssh configuration file")
+    log.debug(`[*] Added alias to ${sshPath}`)
+
+
     process.exit(0)
 }
 
@@ -81,6 +104,27 @@ function cmdAliasUnset(args: any) {
     containerConfig.alias = ""
     writeContainerConfig(containerPath, containerConfig)
     log.info(`[*] unset alias from container: ${containerName}`)
+
+    // Change ssh configuration file
+    const lxceConfig = readLxceConfig(CONF_FILE)
+    const sshPath = path.join(
+        SSH_DIR,
+        args.domain,
+        containerName
+    )
+    let ssh = readFileSync(sshPath, "utf-8")
+        .split("\n")
+        .map(line => {
+            if (line.startsWith("Host")) {
+                // Remove alias
+                return line.split(" ").slice(0, 1).join(" ")
+            }
+        })
+        .join("\n")
+    writeFileSync(sshPath, ssh)
+    gitCommit(SSH_DIR, `alias-unset: ${args.domain}-${containerName}`)
+    log.info("[*] Updated ssh configuration file")
+    log.debug(`[*] Removed alias from ${sshPath}`)
 
     process.exit(0)
 }
@@ -108,6 +152,7 @@ const builderSet = (yargs: any) => {
         demand: true,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.option("name", {
         alias: 'n',
@@ -115,6 +160,7 @@ const builderSet = (yargs: any) => {
         demand: true,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.option("alias", {
         alias: 'a',
@@ -122,6 +168,7 @@ const builderSet = (yargs: any) => {
         demand: true,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.example([
         ["$0 set -d google -n front -a alice", "Set alias alice to container front within google domain"],
@@ -136,6 +183,7 @@ const builderUnset = (yargs: any) => {
         demand: true,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.option("name", {
         alias: 'n',
@@ -143,6 +191,7 @@ const builderUnset = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.option("alias", {
         alias: 'a',
@@ -150,6 +199,7 @@ const builderUnset = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.example([
         ["$0 unset -d google -n front", "Unset alias to container front within google domain"],
