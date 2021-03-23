@@ -97,9 +97,9 @@ function getContainerId(domain: string): number {
 
 // Return ssh config file
 function sshConfig(ssh: SSH): string {
-    let firstLine = `Host ${ssh.suffix}${ssh.name}.${ssh.domain}`
+    let firstLine = `Host ${ssh.suffix}.${ssh.domain}.${ssh.name}`
     // Adding one space !!
-    if (ssh.alias) firstLine += ` ${ssh.suffix}.${ssh.alias}.${ssh.domain}`
+    if (ssh.alias) firstLine += ` ${ssh.suffix}.${ssh.domain}.${ssh.alias}`
 
     let config = [
         `${firstLine}`,
@@ -398,7 +398,8 @@ export const builder = (yargs: any) => {
         describe: "domain for the container/containers",
         demand: true,
         type: "string",
-        nargs: 1
+        nargs: 1,
+        group: "Options"
     })
     yargs.option("range", {
         alias: "r",
@@ -406,19 +407,22 @@ export const builder = (yargs: any) => {
         demand: false,
         type: "number",
         default: 1,
-        nargs: 1
+        nargs: 1,
+        group: "Options"
     })
     yargs.option("names", {
         alias: 'n',
         describe: 'names/name of the containers/container',
         demand: false,
         type: 'array',
+        group: "Options"
     })
     yargs.option("aliases", {
         alias: 'a',
         describe: 'aliases/alias of the containers/container',
         demand: false,
         type: 'array',
+        group: "Options"
     })
     yargs.example([
         ["$0 launch -d google", "Launch one container within google with a random name"],

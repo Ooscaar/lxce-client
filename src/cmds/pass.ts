@@ -98,7 +98,8 @@ export const builder = {
         describe: "Apply to all containers",
         demand: false,
         type: "boolean",
-        nargs: 0
+        nargs: 0,
+        group: "Options"
     },
     "domain": {
         alias: 'd',
@@ -106,6 +107,7 @@ export const builder = {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     },
     "name": {
         alias: 'n',
@@ -113,6 +115,7 @@ export const builder = {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     },
     "alias": {
         alias: 'a',
@@ -120,5 +123,6 @@ export const builder = {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     }
 }

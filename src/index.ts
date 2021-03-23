@@ -5,15 +5,12 @@ import log from "loglevel"
 const args = yargs(process.argv.slice(2))
     .usage("Usage: $0 [command] <options> <flags>")
     .scriptName("lxce")
-    .commandDir("cmds")
-    .strict()
-    // .completion()
-    .demandCommand(1, "")  //demand 1 command and don't print
-    .recommendCommands()
+
+    // Flags
+    .alias("v", "verbose")
     .help()
     .alias("h", "help")
     .version()
-    .alias("v", "verbose")
     // Set log level
     .middleware((args) => {
         if (args.verbose) {
@@ -24,6 +21,12 @@ const args = yargs(process.argv.slice(2))
         }
     })
     .group(["version", "help", "verbose"], "Flags")
+
+    // Commands
+    .commandDir("cmds")
+    .strict()
+    .demandCommand(1, "")  //demand 1 command and don't print
+    .recommendCommands()
     .argv
 
     // WARNING !!!
@@ -34,3 +37,4 @@ const args = yargs(process.argv.slice(2))
 
 
 // TODO: maybe add here the exceptions handler
+

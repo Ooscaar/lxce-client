@@ -157,6 +157,7 @@ export const builder = (yargs: any) => {
         describe: "Values to show",
         type: "string",
         required: false,
-        nargs: 1
+        nargs: 1,
+        group: "Options"
     })
 }

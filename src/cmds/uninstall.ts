@@ -91,5 +91,6 @@ export const builder = {
         demand: false,
         type: "boolean",
         nargs: 0,
+        group: "Options"
     }
 }

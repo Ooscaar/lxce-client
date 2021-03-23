@@ -79,24 +79,6 @@ async function cmdInit(args: any) {
             type: "input",
             name: "hostname",
             message: "lxce.conf: Select hypervisor hostname",
-            validate: (answer) => {
-                if (answer) {
-                    // Check valid IP
-                    if (answer.split(".").length !== 4) {
-                        return "Please enter a valid hostname"
-                    }
-
-                    for (let block of answer.split(".")) {
-                        if ((block < 0) || (block > 255)) {
-                            return "Please enter a valid hostname"
-                        }
-                        continue
-                    }
-                    return true
-                }
-
-                return "Please enter a valid hostname"
-            }
         },
         {
             type: "input",
@@ -156,14 +138,14 @@ async function cmdInit(args: any) {
     // Install bash/zsh completions
 
     // Bash
-    if (answers.bash) {
-        const dir = execSync("pkg-config --variable=completions bash-completion").toString()
-        const pathBash = path.join(dir, "lxce")
-        const bashCompletion = fs.readFileSync("../../completions/completion.bash")
+    // if (answers.bash) {
+    //     const dir = execSync("pkg-config --variable=completions bash-completion").toString()
+    //     const pathBash = path.join(dir, "lxce")
+    //     const bashCompletion = fs.readFileSync("../../completions/completion.bash")
 
-        fs.writeFileSync(pathBash, bashCompletion)
-        console.log(`[*] added bash completion on ${pathBash}`)
-    }
+    //     fs.writeFileSync(pathBash, bashCompletion)
+    //     console.log(`[*] added bash completion on ${pathBash}`)
+    // }
     // Zsh - TODO
 
 
