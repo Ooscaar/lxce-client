@@ -1,19 +1,29 @@
 import yargs from "yargs";
+import log from "loglevel"
 
 
-yargs(process.argv.slice(2))
+const args = yargs(process.argv.slice(2))
     .usage("Usage: $0 [command] <options> <flags>")
     .scriptName("lxce")
     .commandDir("cmds")
     .strict()
-    //.completion()
+    // .completion()
     .demandCommand(1, "")  //demand 1 command and don't print
     .recommendCommands()
     .help()
     .alias("h", "help")
     .version()
-    .alias("v", "version")
-    .group(["version", "help"], "Flags")
+    .alias("v", "verbose")
+    // Set log level
+    .middleware((args) => {
+        if (args.verbose) {
+            log.setLevel(log.levels.TRACE)
+        } else {
+            const defaultLevel = log.levels.INFO
+            log.setLevel(defaultLevel)
+        }
+    })
+    .group(["version", "help", "verbose"], "Flags")
     .argv
 
     // WARNING !!!

@@ -17,7 +17,6 @@
   },
   "pkg": {
     "scripts": "build/**/*.js"
-
   },
   "private": true,
   "author": "",
@@ -32,6 +31,7 @@
   "dependencies": {
     "@types/inquirer": "^7.3.1",
     "inquirer": "^8.0.0",
+    "loglevel": "^1.7.1",
     "table": "^6.0.7",
     "unique-names-generator": "^4.4.0",
     "yargs": "^16.2.0"
