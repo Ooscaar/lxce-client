@@ -1,9 +1,11 @@
 {
   "name": "tfg-lxce",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "",
   "main": "build/index.js",
-  "bin": "build/index.js",
+  "bin": {
+    "tfg-lxce": "build/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf build",
