@@ -85,12 +85,13 @@ export const describe = "Remove all configurations from the lxce command"
 export const handler = cmdUninstall
 
 
-export const builder = {
-    "yes": {
+export const builder = (yargs: any) => {
+    yargs.usage("$0 uninstall <options> <flags>")
+    yargs.option("yes", {
         alias: "y",
         demand: false,
         type: "boolean",
         nargs: 0,
         group: "Options"
-    }
+    })
 }

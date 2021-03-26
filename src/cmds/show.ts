@@ -101,37 +101,43 @@ export const describe = "Show containers configurations files"
 
 export const handler = cmdShow
 
-export const builder = {
-    "global": {
+export const builder = (yargs: any) => {
+    yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",
         demand: false,
         type: "boolean",
         nargs: 0,
         group: "Options"
-    },
-    "domain": {
+    })
+    yargs.option("domain", {
         alias: 'd',
         describe: 'Domain name for a group of containers',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "name": {
+    })
+    yargs.option("name", {
         alias: 'n',
         describe: 'Container name',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "alias": {
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    }
+    })
+    yargs.example([
+        ["$0 show --global", "Show all containers configurations"],
+        ["$0 show -d google", "Show all containers configurations within domain"],
+        ["$0 show -d google -n still-yellow", "Show container configurations defined by name"],
+        ["$0 show -d google -a alice", "Stop container configuration defined by alias"],
+    ])
 }

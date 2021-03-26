@@ -79,6 +79,13 @@ async function cmdInit(args: any) {
             type: "input",
             name: "hostname",
             message: "lxce.conf: Select hypervisor hostname",
+            validate: (answer) => {
+                if (answer) {
+                    return true
+                }
+
+                return "Please enter a valid hostname"
+            }
         },
         {
             type: "input",
@@ -163,5 +170,9 @@ export const command = "init"
 export const describe = "Initialize lxce command"
 
 export const handler = cmdInit
+
+export const builder = (yargs: any) => {
+    yargs.usage("Usage: $0 init <flags>")
+}
 
 

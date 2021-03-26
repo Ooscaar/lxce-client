@@ -89,10 +89,9 @@ function cmdAliasUnset(args: any) {
     // Checkings
     checkAlias(args.domain)
 
-    // Already check for the existence
+    // Already checks existence
     let containerName = getContainerName(args.alias ?? args.name, args.domain)
 
-    // Create alias from args.name
     const containerPath = path.join(
         CONTAINER_CONFIG_DIR,
         args.domain,
@@ -140,7 +139,7 @@ function cmdAlias(args: any) {
 // ---------------------
 export const command = "alias"
 
-export const describe = "Manage containers alias"
+export const describe = "Manage containers aliases"
 
 export const handler = cmdAlias
 
@@ -171,12 +170,12 @@ const builderSet = (yargs: any) => {
         group: "Options"
     })
     yargs.example([
-        ["$0 set -d google -n front -a alice", "Set alias alice to container front within google domain"],
+        ["$0 alias set -d google -n front -a alice", "Set alias alice to container front within google domain"],
     ])
 }
 
 const builderUnset = (yargs: any) => {
-    yargs.usage("Usage: $0 [options] <flags>")
+    yargs.usage("Usage: $0 <options> <flags>")
     yargs.option("domain", {
         alias: 'd',
         describe: 'container domain',
@@ -202,15 +201,15 @@ const builderUnset = (yargs: any) => {
         group: "Options"
     })
     yargs.example([
-        ["$0 unset -d google -n front", "Unset alias to container front within google domain"],
-        ["$0 unset -d google -a alice", "Unset alias to container with alice alias within google domain"],
+        ["$0 alias unset -d google -n front", "Unset alias to container front within google domain"],
+        ["$0 alias unset -d google -a alice", "Unset alias to container with alice alias within google domain"],
     ])
 }
 
 
 
 export const builder = (yargs: any) => {
-    yargs.usage("Usage: $0 alias <command> [options] [flags]")
+    yargs.usage("Usage: $0 alias [command]> <options> <flags>")
     yargs.demandCommand(1, "")
     yargs.strict()
     yargs.command(

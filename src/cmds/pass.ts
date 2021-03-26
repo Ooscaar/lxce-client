@@ -92,37 +92,44 @@ export const describe = "Compute password from containers"
 export const handler = cmdPass
 
 
-export const builder = {
-    "global": {
+export const builder = (yargs: any) => {
+    yargs.usage("Usage: $0 pass <options> <flags>")
+    yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",
         demand: false,
         type: "boolean",
         nargs: 0,
         group: "Options"
-    },
-    "domain": {
+    })
+    yargs.option("domain", {
         alias: 'd',
         describe: 'Domain name for a group of containers',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "name": {
+    })
+    yargs.option("name", {
         alias: 'n',
         describe: 'Container name',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "alias": {
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    }
+    })
+    yargs.example([
+        ["$0 pass --global", "Compute all container passwords"],
+        ["$0 pass --domain google", "Compute all domain passwords"],
+        ["$0 pass -d google -n front", "Compute container name password"],
+        ["$0 pass -d google -a alice", "Compute container alias password"]
+    ])
 }

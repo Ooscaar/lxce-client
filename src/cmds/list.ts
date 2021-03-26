@@ -132,10 +132,9 @@ export const describe = "List containers properties"
 
 export const handler = cmdList
 
-// TODO: resolve spaces in help message
 export const builder = (yargs: any) => {
     yargs.usage([
-        "Usage: $0 list [--format/-f] options [flags]",
+        "Usage: $0 list <--format/-f> options <flags>",
         "",
         "Format options",
         "==============",
@@ -143,7 +142,7 @@ export const builder = (yargs: any) => {
         `-a: "alias"`,
         `-u: "user"`,
         `-b: "base"`,
-        `-r: "ram"`,
+        `-r: "ram (MB)"`,
         `-p: "ports"`,
         `-4: "ipv4"`,
         `-6: "ipv6"`,
@@ -160,4 +159,7 @@ export const builder = (yargs: any) => {
         nargs: 1,
         group: "Options"
     })
+    yargs.example([
+        ["$0 list -f naubr"]
+    ])
 }

@@ -242,8 +242,4 @@ export const builder = (yargs: any) => {
 }
 
 
-// Rebase
-// rebase --default -b ubuntu:20.04
-// rebase --domain google -b ubuntu:20.04
-// rebase --domain -n/-a -b ubuntu:20.04
 

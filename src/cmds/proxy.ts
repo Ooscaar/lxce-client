@@ -144,37 +144,44 @@ export const describe = "Delete and restart proxies based on configuration files
 
 export const handler = cmdProxy
 
-export const builder = {
-    "global": {
+export const builder = (args: any) => {
+    yargs.usage("$0 proxy <options> <flags>")
+    yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",
         demand: false,
         type: "boolean",
         nargs: 0,
         group: "Options"
-    },
-    "domain": {
+    })
+    yargs.option("domain", {
         alias: 'd',
         describe: 'Domain name for a group of containers',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "name": {
+    })
+    yargs.option("name", {
         alias: 'n',
         describe: 'Container name',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "alias": {
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    }
+    })
+    yargs.example([
+        ["$0 proxy --global", "Restart all containers proxies based on their configuration files"],
+        ["$0 proxy -d google", "Restart all domain containers proxies based on their configuration files"],
+        ["$0 proxy -d google -n front", "Restart container proxies"],
+        ["$0 proxy -d google -a alice", "Restart container proxies"],
+    ])
 }

@@ -385,7 +385,7 @@ export function cmdLaunch(args: any) {
 // ---------------------
 export const command = "launch"
 
-export const describe = "Launch containers from a specific domain"
+export const describe = "Launch containers"
 
 export const handler = cmdLaunch
 
@@ -426,9 +426,9 @@ export const builder = (yargs: any) => {
     })
     yargs.example([
         ["$0 launch -d google", "Launch one container within google with a random name"],
-        ["$0 rebase -d google -r 3", "Launch three containers within google with randon names"],
-        ["$0 rebase -d google -r 3 -n back front base", "Launch three containers within google with specified names"],
-        ["$0 rebase -d google -r 3 -n back front base -a alice bob eve", "Launch three containers with names and alias specified"],
-        ["$0 rebase -d google -r 3 -a alice bob eve", "Launch three containers with random names and alias specified"],
+        ["$0 launch -d google -r 3", "Launch three containers within google with randon names"],
+        ["$0 launch -d google -r 3 -n back front base", "Launch three containers within google with specified names"],
+        ["$0 launch -d google -r 3 -n back front base -a alice bob eve", "Launch three containers with names and alias specified"],
+        ["$0 launch -d google -r 3 -a alice bob eve", "Launch three containers with random names and alias specified"],
     ])
 }

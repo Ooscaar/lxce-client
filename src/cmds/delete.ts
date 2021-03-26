@@ -277,45 +277,52 @@ export const describe = "Delete containers and configurations/folders related"
 
 export const handler = cmdDelete
 
-export const builder = {
-    "global": {
+export const builder = (yargs: any) => {
+    yargs.usage("Usage: $0 delete <options> <flags>")
+    yargs.option("global", {
         alias: "g",
         describe: "apply to all containers",
         demand: false,
         type: "boolean",
         nargs: 0,
         group: "Options"
-    },
-    "domain": {
+    })
+    yargs.option("domain", {
         alias: 'd',
         describe: 'domain name for a group of containers',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "name": {
+    })
+    yargs.option("name", {
         alias: 'n',
         describe: 'container name',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "alias": {
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'container alias',
         demand: false,
         type: 'string',
         nargs: 1,
         group: "Options"
-    },
-    "yes": {
+    })
+    yargs.option("yes", {
         alias: "y",
         describe: "yes to questions",
         demand: false,
         type: "boolean",
         nargs: 0,
         group: "Options"
-    },
+    })
+    yargs.example([
+        ["$0 delete --global", "Deletes all containers and configurations related"],
+        ["$0 delete -d google", "Deletes all containers within google domain"],
+        ["$0 delete -d google -n still-yellow", "Deletes container referenced by name"],
+        ["$0 delete -d google -a alice", "Deletes container referenced by alias"],
+    ])
 }
