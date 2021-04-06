@@ -1,20 +1,11 @@
 import yargs from "yargs"
-import { checkAccess, checkDomain, checkInitialized, existAlias, getContainerName, readContainerConfig, writeContainerConfig } from "../utils/util"
-import { CONTAINER_CONFIG_DIR } from "../constants"
+import { checkAccess, checkDomain, checkInitialized, existAlias, getContainerName, gitCommit, readContainerConfig, readLxceConfig, writeContainerConfig } from "../utils/util"
+import { CONF_FILE, CONTAINER_CONFIG_DIR, SSH_DIR } from "../constants"
 import path from "path"
-import { domain } from "node:process"
+import log from "loglevel"
+import { readFileSync, writeFileSync } from "fs"
 
 
-// Auxiliar function for modify alias
-// Valid for:
-// - modify
-// - delete
-function modifyAlias(containerPath: string, alias: string) {
-    let containerConfig = readContainerConfig(containerPath)
-    console.log(`[**] changing: ${containerConfig.alias} --> ${alias}`)
-    containerConfig.alias = alias
-    writeContainerConfig(containerPath, containerConfig)
-}
 
 function checkAlias(domain: string) {
 
@@ -52,6 +43,8 @@ function cmdAliasSet(args: any) {
 
     // Check alias does not exist
     if (existAlias(args.alias, args.domain)) {
+        log.info("[*] Existing alias")
+        log.debug(`[*] ${args.alias} assigned to ${getContainerName(args.alias, args.domain)} `)
         process.exit(1)
     }
 
@@ -61,7 +54,34 @@ function cmdAliasSet(args: any) {
         args.domain,
         containerName
     )
-    modifyAlias(containerPath, args.alias)
+
+    let containerConfig = readContainerConfig(containerPath)
+    containerConfig.alias = args.alias
+    writeContainerConfig(containerPath, containerConfig)
+    log.info(`[*] set container: ${containerName} --> alias: ${args.alias} `)
+
+    // Change ssh configuration file
+    const lxceConfig = readLxceConfig(CONF_FILE)
+    const sshPath = path.join(
+        SSH_DIR,
+        args.domain,
+        containerName
+    )
+    let ssh = readFileSync(sshPath, "utf-8")
+        .split("\n")
+        .map(line => {
+            if (line.startsWith("Host")) {
+                return `${line} ${lxceConfig.hypervisor.SSH_suffix}.${args.domain}.${args.alias}`
+            }
+            return line
+        })
+        .join("\n")
+    writeFileSync(sshPath, ssh)
+    gitCommit(SSH_DIR, `alias-set: ${args.domain}-${containerName}`)
+    log.info("[*] Updated ssh configuration file")
+    log.debug(`[*] Added alias to ${sshPath}`)
+
+
     process.exit(0)
 }
 
@@ -69,40 +89,45 @@ function cmdAliasUnset(args: any) {
     // Checkings
     checkAlias(args.domain)
 
-    // Already check for the existence
-    let containerName = getContainerName(args.name, args.domain)
+    // Already checks existence
+    let containerName = getContainerName(args.alias ?? args.name, args.domain)
 
-    // Create alias from args.name
     const containerPath = path.join(
         CONTAINER_CONFIG_DIR,
         args.domain,
         containerName
     )
+
     // Overwrite it with ""
-    modifyAlias(containerPath, "")
+    let containerConfig = readContainerConfig(containerPath)
+    containerConfig.alias = ""
+    writeContainerConfig(containerPath, containerConfig)
+    log.info(`[*] unset alias from container: ${containerName}`)
+
+    // Change ssh configuration file
+    const lxceConfig = readLxceConfig(CONF_FILE)
+    const sshPath = path.join(
+        SSH_DIR,
+        args.domain,
+        containerName
+    )
+    let ssh = readFileSync(sshPath, "utf-8")
+        .split("\n")
+        .map(line => {
+            if (line.startsWith("Host")) {
+                // Remove alias
+                return line.split(" ").slice(0, 1).join(" ")
+            }
+        })
+        .join("\n")
+    writeFileSync(sshPath, ssh)
+    gitCommit(SSH_DIR, `alias-unset: ${args.domain}-${containerName}`)
+    log.info("[*] Updated ssh configuration file")
+    log.debug(`[*] Removed alias from ${sshPath}`)
+
     process.exit(0)
 }
 
-// Even if the actual alias is provided
-// show the current alias
-function cmdAliasShow(args: any) {
-    // Check only for domain
-    if (!checkDomain(args.domain)) {
-        console.log(`[*] Domain ${args.domain} does not exist`)
-        process.exit(1)
-    }
-    // Already check for the existence
-    let containerName = getContainerName(args.name, args.domain)
-
-    // Create alias from args.name
-    const containerPath = path.join(
-        CONTAINER_CONFIG_DIR,
-        args.domain,
-        containerName
-    )
-    const containerConfig = readContainerConfig(containerPath)
-    console.log(`alias: ${containerConfig.alias}`)
-}
 
 // Alias function
 function cmdAlias(args: any) {
@@ -114,92 +139,90 @@ function cmdAlias(args: any) {
 // ---------------------
 export const command = "alias"
 
-export const describe = "Manage containers alias"
+export const describe = "Manage containers aliases"
 
 export const handler = cmdAlias
 
-const builderModify = {
-    "domain": {
+const builderSet = (yargs: any) => {
+    yargs.usage("Usage: $0 [options] <flags>")
+    yargs.option("domain", {
         alias: 'd',
         describe: 'container domain',
         demand: true,
         type: 'string',
         nargs: 1,
-    },
-    "name": {
+        group: "Options"
+    })
+    yargs.option("name", {
         alias: 'n',
-        describe: 'Container name/alias',
+        describe: 'container name',
         demand: true,
         type: 'string',
         nargs: 1,
-    },
-    "alias": {
+        group: "Options"
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'new container alias',
         demand: true,
         type: 'string',
         nargs: 1,
-    }
+        group: "Options"
+    })
+    yargs.example([
+        ["$0 alias set -d google -n front -a alice", "Set alias alice to container front within google domain"],
+    ])
 }
 
-
-const builderDelete = {
-    "domain": {
+const builderUnset = (yargs: any) => {
+    yargs.usage("Usage: $0 <options> <flags>")
+    yargs.option("domain", {
         alias: 'd',
         describe: 'container domain',
         demand: true,
         type: 'string',
         nargs: 1,
-    },
-    "name": {
+        group: "Options"
+    })
+    yargs.option("name", {
         alias: 'n',
-        describe: 'Container name/alias',
-        demand: true,
+        describe: 'container name',
+        demand: false,
         type: 'string',
         nargs: 1,
-    },
+        group: "Options"
+    })
+    yargs.option("alias", {
+        alias: 'a',
+        describe: 'new container alias',
+        demand: false,
+        type: 'string',
+        nargs: 1,
+        group: "Options"
+    })
+    yargs.example([
+        ["$0 alias unset -d google -n front", "Unset alias to container front within google domain"],
+        ["$0 alias unset -d google -a alice", "Unset alias to container with alice alias within google domain"],
+    ])
 }
 
-
-const builderShow = {
-    "domain": {
-        alias: 'd',
-        describe: 'container domain',
-        demand: true,
-        type: 'string',
-        nargs: 1,
-    },
-    "name": {
-        alias: 'n',
-        describe: 'Container name/alias',
-        demand: true,
-        type: 'string',
-        nargs: 1,
-    },
-}
 
 
 export const builder = (yargs: any) => {
-    yargs.usage("Usage: $0 alias <command> [options] [flags]")
+    yargs.usage("Usage: $0 alias [command]> <options> <flags>")
     yargs.demandCommand(1, "")
     yargs.strict()
     yargs.command(
         "set",
         "set container alias",
-        builderModify,
+        builderSet,
         cmdAliasSet
     )
     yargs.command(
         "unset",
         "unset container alias",
-        builderDelete,
+        builderUnset,
         cmdAliasUnset
-    )
-    yargs.command(
-        "show",
-        "show current container alias",
-        builderShow,
-        cmdAliasShow
     )
 }
 

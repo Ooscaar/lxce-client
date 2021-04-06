@@ -45,7 +45,6 @@ function cmdStop(args: any) {
 
     if (!args.name && !args.global && !args.domain) {
         yargs.showHelp()
-        console.log("[*] Please select at least one option")
         process.exit(1)
     }
 
@@ -109,33 +108,44 @@ export const describe = "Stop containers"
 export const handler = cmdStop
 
 
-export const builder = {
-    "global": {
+export const builder = (yargs: any) => {
+    yargs.usage("$0 stop <options> <flags>")
+    yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",
         demand: false,
         type: "boolean",
-        nargs: 0
-    },
-    "domain": {
+        nargs: 0,
+        group: "Options"
+    })
+    yargs.option("domain", {
         alias: 'd',
         describe: 'Domain name for a group of containers',
         demand: false,
         type: 'string',
         nargs: 1,
-    },
-    "name": {
+        group: "Options"
+    })
+    yargs.option("name", {
         alias: 'n',
         describe: 'Container name',
         demand: false,
         type: 'string',
         nargs: 1,
-    },
-    "alias": {
+        group: "Options"
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,
-    }
+        group: "Options"
+    })
+    yargs.example([
+        ["$0 stop --global", "Stop all containers"],
+        ["$0 stop -d google", "Stop all container within domain"],
+        ["$0 stop -d google -n still-yellow", "Stop container defined by name"],
+        ["$0 stop -d google -a alice", "Stop container defined by alias"],
+    ])
 }

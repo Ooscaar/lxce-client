@@ -63,7 +63,8 @@ async function getContainerJSON(name: string, domain: string) {
     container["status"] = json.status
     container["ipv4"] = json.network ? json.network.eth0.addresses[0].address : ""
     container["ipv6"] = json.network ? json.network.eth0.addresses[1].address : ""
-    container["ram"] = json.memory.usage !== 0 ? `${json.memory.usage / 1e6} MB` : 0
+    container["ram"] = json.memory.usage !== 0 ? `${(json.memory.usage / 1e6).toFixed(2)} MB` : 0
+    container["cpu"] = `${(json.cpu.usage / 1e9).toFixed(2)} (s)`
 
 
     return container
@@ -131,30 +132,34 @@ export const describe = "List containers properties"
 
 export const handler = cmdList
 
-// TODO: resolve spaces in help message
 export const builder = (yargs: any) => {
-    yargs.usage(
-        `Usage: $0 list [--format/-f] options [flags]
-
-    Format options
-    ==============
-    -n: "name"
-    -a: "alias"
-    -u: "user"
-    -b: "base"
-    -r: "ram"
-    -p: "ports"
-    -4: "ipv4"
-    -6: "ipv6"
-    -s: "status"
-    -d: "domain
-    `)
+    yargs.usage([
+        "Usage: $0 list <--format/-f> options <flags>",
+        "",
+        "Format options",
+        "==============",
+        `-n: "name"`,
+        `-a: "alias"`,
+        `-u: "user"`,
+        `-b: "base"`,
+        `-r: "ram (MB)"`,
+        `-p: "ports"`,
+        `-4: "ipv4"`,
+        `-6: "ipv6"`,
+        `-s: "status"`,
+        `-d: "domain"`,
+        `-c: "cpu usage (s)"`,
+    ].join("\n"))
     yargs.strict()
     yargs.option("format", {
         alias: "f",
         describe: "Values to show",
         type: "string",
         required: false,
-        nargs: 1
+        nargs: 1,
+        group: "Options"
     })
+    yargs.example([
+        ["$0 list -f naubr"]
+    ])
 }

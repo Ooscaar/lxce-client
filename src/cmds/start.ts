@@ -95,33 +95,44 @@ export const describe = "Start containers"
 
 export const handler = cmdStart
 
-export const builder = {
-    "global": {
+export const builder = (yargs: any) => {
+    yargs.usage("$0 start <options> <flags>")
+    yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",
         demand: false,
         type: "boolean",
-        nargs: 0
-    },
-    "domain": {
+        nargs: 0,
+        group: "Options"
+    })
+    yargs.option("domain", {
         alias: 'd',
         describe: 'Domain name for a group of containers',
         demand: false,
         type: 'string',
         nargs: 1,
-    },
-    "name": {
+        group: "Options"
+    })
+    yargs.option("name", {
         alias: 'n',
         describe: 'Container name',
         demand: false,
         type: 'string',
         nargs: 1,
-    },
-    "alias": {
+        group: "Options"
+    })
+    yargs.option("alias", {
         alias: 'a',
         describe: 'Container alias',
         demand: false,
         type: 'string',
         nargs: 1,
-    }
+        roup: "Options"
+    })
+    yargs.example([
+        ["$0 start --global", "Start all containers"],
+        ["$0 start -d google", "Start all container within domain"],
+        ["$0 start -d google -n still-yellow", "Start container defined by name"],
+        ["$0 start -d google -a alice", "Start container defined by alias"],
+    ])
 }

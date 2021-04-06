@@ -1,9 +1,11 @@
 {
   "name": "tfg-lxce",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "",
   "main": "build/index.js",
-  "bin": "build/index.js",
+  "bin": {
+    "tfg-lxce": "build/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "clean": "rm -rf build",
@@ -17,7 +19,6 @@
   },
   "pkg": {
     "scripts": "build/**/*.js"
-
   },
   "private": true,
   "author": "",
@@ -32,6 +33,7 @@
   "dependencies": {
     "@types/inquirer": "^7.3.1",
     "inquirer": "^8.0.0",
+    "loglevel": "^1.7.1",
     "table": "^6.0.7",
     "unique-names-generator": "^4.4.0",
     "yargs": "^16.2.0"

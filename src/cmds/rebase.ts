@@ -1,31 +1,37 @@
 import yargs from "yargs"
 import path from "path"
-import * as net from "net"
-import { askQuestion, checkAccess, checkDomain, checkInitialized, generatePassword, getContainersDomain, getDomains, getContainerName, getUserContainer, lxcDelete, lxcDeviceAdd, lxcLaunch, lxcPassword, lxcProxy, lxcWait, lxdDNS, readContainerConfig, readLxceConfig, writeContainerConfig } from "../utils/util"
-import * as http from "http"
-import { resolve } from "node:path"
-import { rejects } from "node:assert"
-import { POINT_CONVERSION_COMPRESSED } from "node:constants"
+import { askQuestion, checkAccess, checkDomain, checkInitialized, generatePassword, getContainersDomain, getDomains, getContainerName, getUserContainer, lxcDelete, lxcDeviceAdd, lxcLaunch, lxcPassword, lxcProxy, lxcWait, lxdDNS, readContainerConfig, writeContainerConfig, checkBase, readLxceConfig } from "../utils/util"
 import { CONF_FILE, CONTAINER_CONFIG_DIR, DEFAULT_CONTAINER_CONF_FILE, LXCE_DIR, SHARED_FOLDER } from "../constants"
 import { getPortNumber } from "./launch"
+import log from "loglevel"
+import chalk from "chalk"
 
-function checkRebase() {
+function checkRebase(base: string) {
     // Check Init
+    log.debug("[*] init: checking everything is initialized")
     if (!checkInitialized()) {
         yargs.showHelp()
         console.log("[*] run lxce init before")
         process.exit(1)
     }
-    console.log("[*] Init: ok!")
+    log.debug("[*] Init: ok!")
 
 
     // Check write permissions
+    log.debug("[*] Permission checking")
     if (!checkAccess()) {
         console.log("[*] Does not have access to the directory")
         console.log("[*] Please run the command with sudo")
         process.exit(1)
     }
-    console.log("[*] Permission checked")
+    log.debug("[*] Permission checking: ok!")
+
+    // Check base exist
+    if (!checkBase(base)) {
+        log.error(`[*] base ${chalk.bold(base)} does not exist `)
+        log.error("[*] please provide a valid container base")
+        process.exit(1)
+    }
 
 }
 
@@ -33,6 +39,8 @@ function checkRebase() {
 // and relaunch it with the new base
 // aplying all the configurations and shared folders
 function rebase(name: string, domain: string, newBase: string, seed: string, hostname: string) {
+
+    log.info(chalk.bold(`[*] Rebasing ${name}`))
 
     // Absolute paths
     const containerPath = path.join(CONTAINER_CONFIG_DIR, domain, name)
@@ -82,25 +90,26 @@ function rebase(name: string, domain: string, newBase: string, seed: string, hos
     containerConfig.base = newBase
     writeContainerConfig(containerPath, containerConfig)
 
+    log.info(chalk.bold(`${chalk.green("[\u2713]")} Rebasing ${name}`))
+
 }
 
 
 async function cmdRebase(args: any) {
 
-    if (!args.global && !args.domain && !args.name && !args.alias) {
-        yargs.showHelp()
-        process.exit(1)
-    }
+    // if (!args.global && !args.domain && !args.name && !args.alias) {
+    //     yargs.showHelp()
+    //     process.exit(1)
+    // }
 
-    checkRebase()
-    const containerConfigDefault = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
+    checkRebase(args.base)
+
     const lxceConfig = readLxceConfig(CONF_FILE)
-    const newBase = containerConfigDefault.base
 
     // --global
     if (args.global) {
         if (!args.yes) {
-            const answer = await askQuestion(`Do you want to rebase ALL containers with ${newBase}?`)
+            const answer = await askQuestion(`Do you want to rebase ALL containers with ${args.base}?`)
             if (!answer) {
                 process.exit(1)
             }
@@ -108,11 +117,16 @@ async function cmdRebase(args: any) {
 
         for (let domain of getDomains()) {
             for (let containerName of getContainersDomain(domain)) {
-                console.log(`[*] Rebasing ${containerName}`)
-                rebase(containerName, domain, newBase, lxceConfig.seed, lxceConfig.hypervisor.SSH_hostname)
-                console.log(`[*] Rebasing ${containerName}: ok!`)
+                rebase(containerName, domain, args.base, lxceConfig.seed, lxceConfig.hypervisor.SSH_hostname)
             }
         }
+
+        // Set default base for next containers
+        let containerConfig = readContainerConfig(DEFAULT_CONTAINER_CONF_FILE)
+        containerConfig.base = args.base
+        writeContainerConfig(DEFAULT_CONTAINER_CONF_FILE, containerConfig)
+        log.info(`[*] Set default base: ${args.base}`)
+
         process.exit(0)
     }
 
@@ -130,16 +144,14 @@ async function cmdRebase(args: any) {
         }
 
         if (!args.yes) {
-            const answer = await askQuestion(`Do you want to rebase ALL containers within ${args.domain} with ${newBase}?`)
+            const answer = await askQuestion(`Do you want to rebase ALL containers within ${args.domain} with ${args.base}?`)
             if (!answer) {
                 process.exit(1)
             }
         }
 
         for (let containerName of getContainersDomain(args.domain)) {
-            console.log(`[*] Rebasing ${containerName}`)
-            rebase(containerName, args.domain, newBase, lxceConfig.seed, lxceConfig.hypervisor.SSH_hostname)
-            console.log(`[*] Rebasing ${containerName}: ok!`)
+            rebase(containerName, args.domain, args.base, lxceConfig.seed, lxceConfig.hypervisor.SSH_hostname)
         }
 
         process.exit(0)
@@ -154,15 +166,13 @@ async function cmdRebase(args: any) {
     let containerName = getContainerName(args.alias ?? args.name, args.domain)
 
     if (!args.yes) {
-        const answer = await askQuestion(`Do you want to rebase ${containerName} container within ${args.domain} with ${newBase}?`)
+        const answer = await askQuestion(`Do you want to rebase ${containerName} container within ${args.domain} with ${args.base}?`)
         if (!answer) {
             process.exit(1)
         }
     }
 
-    console.log(`[*] Rebasing ${containerName}`)
-    rebase(containerName, args.domain, newBase, lxceConfig.seed, lxceConfig.hypervisor.SSH_hostname)
-    console.log(`[*] Rebasing ${containerName}: ok!`)
+    rebase(containerName, args.domain, args.base, lxceConfig.seed, lxceConfig.hypervisor.SSH_hostname)
     process.exit(0)
 
 
@@ -188,7 +198,8 @@ export const builder = (yargs: any) => {
         describe: "Applied to all containers",
         demand: false,
         type: "boolean",
-        nargs: 0
+        nargs: 0,
+        group: "Options"
     })
     yargs.option("domain", {
         alias: 'd',
@@ -196,6 +207,7 @@ export const builder = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.option("name", {
         alias: 'n',
@@ -203,6 +215,7 @@ export const builder = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
     })
     yargs.option("alias", {
         alias: 'a',
@@ -210,13 +223,23 @@ export const builder = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
+    })
+    yargs.option("base", {
+        alias: 'b',
+        describe: 'Container base',
+        demand: true,
+        type: 'string',
+        nargs: 1,
+        group: "Options"
     })
     yargs.example([
-        ["$0 rebase --global", "Applies new base to all containers"],
+        ["$0 rebase --global", "Applies new base to existing containers and future ones"],
         ["$0 rebase -d google", "Applies new base to all containers withing google domain"],
         ["$0 rebase -d google -n still-yellow", "Applies new base to container specified"],
         ["$0 rebase -d google -a alice", "Applies new base to container specified"],
     ])
 }
+
 
 
