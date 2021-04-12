@@ -27,6 +27,8 @@ import {
     LxceConfig
 } from "../interfaces/interfaces"
 import { execSync } from "child_process"
+import log from "loglevel"
+import { Convert } from "../utils/parser"
 
 
 
@@ -68,13 +70,29 @@ function init(containerConfig: ContainerConfig, lxceConfig: LxceConfig) {
 
 }
 
+// Ask for locations until no more are demanded
+async function askLocations(questions: inquirer.QuestionCollection) {
+    let locations: string[] = []
+    let askAgain = true
+
+    // Ask until no more questions (askAgain=false)
+    while (askAgain) {
+        const answer = await inquirer.prompt(questions)
+        if (!locations.includes(answer.locations)) {
+            locations.push(answer.location)
+        }
+        askAgain = answer.askAgain
+    }
+
+    return locations
+}
 
 // Init function
 async function cmdInit(args: any) {
 
     checkInit()
 
-    const questions: inquirer.QuestionCollection = [
+    const lxceQuestions: inquirer.QuestionCollection = [
         {
             type: "input",
             name: "hostname",
@@ -99,6 +117,58 @@ async function cmdInit(args: any) {
                 return "Please enter a valid suffix"
             }
         },
+    ]
+
+
+    // recursively locations questions
+    const locationsQuestions: inquirer.QuestionCollection = [
+        {
+            type: "input",
+            name: "location",
+            message: "lxce.conf: Select data location [full path]",
+            validate: (answer) => {
+                // answer is the full response
+                // no object
+                if (answer) {
+                    if (fs.existsSync(answer)) {
+                        return true
+                    }
+
+                    return `${answer} does not exist`
+
+                }
+
+                return "Please enter a valid location"
+            }
+
+        },
+        {
+            type: 'confirm',
+            name: 'askAgain',
+            message: 'Want to add another data location (just hit enter for YES)?',
+            default: true,
+        },
+    ]
+
+    // Set values from answers provided
+    let containerConfig = CONTAINER_CONFIG_DEFAULT
+    let lxceConfig = CONF_FILE_DATA
+
+    // Questions logic
+    // - first ask the lxce.conf (last one recursively)
+    // - second ask for the default container conf
+    //   using some default values from before
+    const lxceAnswers = await inquirer.prompt(lxceQuestions)
+    const locations = await askLocations(locationsQuestions)
+
+    // 1
+    lxceConfig.hypervisor.SSH_hostname = lxceAnswers.hostname
+    lxceConfig.hypervisor.SSH_suffix = lxceAnswers.suffix
+    lxceConfig.seed = generateSeed(SEED_LENGHT, SEED_ENCODING)
+    lxceConfig.locations = locations
+
+    // 2
+    const containerQuestions: inquirer.QuestionCollection = [
         {
             type: "input",
             name: "base",
@@ -117,44 +187,19 @@ async function cmdInit(args: any) {
             }
         },
         {
-            type: "confirm",
-            name: "bash",
-            message: "Bash completion(TODO)"
-        },
-        {
-            type: "confirm",
-            name: "zsh",
-            message: "Zsh completion(TODO)"
+            type: "list",
+            name: "location",
+            message: "container.default: Select default container location",
+            choices: locations
         }
     ]
+    const containerAnswers = await inquirer.prompt(containerQuestions)
 
-    let containerConfig = CONTAINER_CONFIG_DEFAULT
-    let lxceConfig = CONF_FILE_DATA
+    containerConfig.base = containerAnswers.base
+    containerConfig.userData = containerAnswers.location
 
-    const answers = await inquirer.prompt(questions)
-
-    // Update defaults configurations files with answers
-    containerConfig.base = answers.base
-
-    lxceConfig.hypervisor.SSH_hostname = answers.hostname
-    lxceConfig.hypervisor.SSH_suffix = answers.suffix
-    lxceConfig.seed = generateSeed(SEED_LENGHT, SEED_ENCODING)
 
     init(containerConfig, lxceConfig)
-
-    // Install bash/zsh completions
-
-    // Bash
-    // if (answers.bash) {
-    //     const dir = execSync("pkg-config --variable=completions bash-completion").toString()
-    //     const pathBash = path.join(dir, "lxce")
-    //     const bashCompletion = fs.readFileSync("../../completions/completion.bash")
-
-    //     fs.writeFileSync(pathBash, bashCompletion)
-    //     console.log(`[*] added bash completion on ${pathBash}`)
-    // }
-    // Zsh - TODO
-
 
     console.log("[*] Good!!")
     process.exit(0)
