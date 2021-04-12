@@ -106,8 +106,8 @@ function sshConfig(ssh: SSH): string {
         `   Hostname ${ssh.hostname}`,
         `   User ${ssh.user}`,
         `   Port ${ssh.port}`,
-        `   TCPKeepAlice yes`,
-        `   ServerAliveInterval 300`,
+        `   TCPKeepAlive yes `,
+        "   ServerAliveInterval 300 \n",
     ].join("\n")
 
     //console.log(`[**] debug: ${config}`)
@@ -161,6 +161,13 @@ function launchContainer(name: string, base: string, seed: string): string {
     try {
         execSync(`lxc launch ${base} ${name}`)
         console.log("[**] waiting for container...")
+
+        // FIXME: will only work on images with cloud init installed (not an option by default)
+        // https://discuss.linuxcontainers.org/t/default-ubuntu-user-runs-sudo-without-authentication/4970/7
+        // A possible solution:
+        // - change ubuntu --> pedro
+        // - pedro will not be able to sudo without password
+        // - the ubuntu /etc/sudoers part will remain
         execSync(`lxc exec ${name} -- cloud-init status -w`)
 
         let user = getUserContainer(name)
