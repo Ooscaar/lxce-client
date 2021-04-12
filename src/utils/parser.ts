@@ -38,9 +38,9 @@ export class Convert {
 
 function invalidValue(typ: any, val: any, key: any = ''): never {
     if (key) {
-        throw Error(`Invalid value for key "${key}". Expected type ${JSON.stringify(typ)} but got ${JSON.stringify(val)}`);
+        throw Error(`Error reading json: Invalid value for key "${key}". Expected type ${JSON.stringify(typ)} but got ${JSON.stringify(val)}`);
     }
-    throw Error(`Invalid value ${JSON.stringify(val)} for type ${JSON.stringify(typ)}`,);
+    throw Error(`Error reading json: Invalid value ${JSON.stringify(val)} for type ${JSON.stringify(typ)}`,);
 }
 
 function jsonToJSProps(typ: any): any {

@@ -1,23 +1,19 @@
-import { exec, execSync } from "child_process"
+import { execSync } from "child_process"
 import * as crypto from "crypto"
 import * as fs from "fs"
 import inquirer from "inquirer"
 import path from "path"
-import yargs from "yargs"
 import {
     CONF_FILE,
-    CONTAINER_CONFIG_DEFAULT,
     CONTAINER_CONFIG_DIR,
     DEFAULT_CONTAINER_CONF_FILE,
-    LXCE_DIR,
-    MAX_CONTAINER_PER_DOMAIN,
     MAX_DOMAINS,
     MAX_PROXIES_PER_CONTAINER,
     PASSWORD_LENGTH,
     SSH_DIR,
     UID
 } from "../constants"
-import { ContainerConfig, LxceConfig, Proxy, SSH } from "../interfaces/interfaces"
+import { ContainerConfig, LxceConfig, Proxy } from "../interfaces/interfaces"
 import { Convert } from "./parser"
 import chalk from "chalk"
 
@@ -80,9 +76,10 @@ export function readLxceConfig(filePath: string): LxceConfig {
         return lxceConfig
 
     } catch (err) {
-        console.log(err.message)
-        //process.exit(1)
-        throw err
+        console.log(`[*] LxceConfig: ${err.message}`)
+
+        process.exit(1)
+        // throw err
 
     }
 }
@@ -94,8 +91,9 @@ export function writeContainerConfig(filePath: string, containerConfig: Containe
 
     } catch (err) {
         console.log(err.message)
-        //process.exit(1)
-        throw err
+
+        process.exit(1)
+        //throw err
     }
 
 }
@@ -107,8 +105,9 @@ export function writeLxceConfig(filePath: string, lxceConfig: LxceConfig, encodi
 
     } catch (err) {
         console.log(err.message)
-        // process.exit(1)
-        throw err
+
+        process.exit(1)
+        //throw err
     }
 
 }
@@ -119,7 +118,9 @@ export function writeSSHConfig(filePath: string, sshConfig: string, encoding = "
 
     } catch (err) {
         console.log(err.message)
-        throw err
+
+        process.exit(1)
+        //throw err
 
     }
 
@@ -289,7 +290,7 @@ export function getUserContainer(name: string): string {
 // *********************CHECK FUNCTIONS *******************  //
 // --------------------------------------------------------  //
 // These functions are intended to:                          //
-// - Provide general checks to each command           //
+// - Provide general checks to each command                  //
 // - Provide logs and debug messages                         //
 //   without killing the process.                            //
 // --------------------------------------------------------  //
