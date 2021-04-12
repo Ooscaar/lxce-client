@@ -64,7 +64,7 @@ function cmdPass(args: any) {
     }
 
     // --domain | --domain --name
-    if (args.domain && !args.name) {
+    if (args.domain && !args.name && !args.alias) {
         for (let containerName of getContainersDomain(args.domain)) {
             pass(containerName, args.domain, seed)
         }

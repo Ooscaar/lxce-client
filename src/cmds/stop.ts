@@ -62,7 +62,7 @@ function cmdStop(args: any) {
         process.exit(0)
     }
 
-    if (args.domain && !args.name) {
+    if (args.domain && !args.name && !args.alias) {
         console.log("[*] Running within domain")
 
         if (!checkDomain(args.domain)) {
@@ -109,7 +109,7 @@ export const handler = cmdStop
 
 
 export const builder = (yargs: any) => {
-    yargs.usage("$0 stop <options> <flags>")
+    yargs.usage("Usage: $0 stop <options> <flags>")
     yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",

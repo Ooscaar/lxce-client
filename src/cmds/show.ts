@@ -71,7 +71,7 @@ function cmdShow(args: any) {
     }
 
     // --domain | --domain --name
-    if (args.domain && !args.name) {
+    if (args.domain && !args.name && !args.alias) {
         console.log(`[*] Configurations from`, chalk.bold(`${args.domain}`))
         console.log("---------------------------------------")
         for (let containerName of getContainersDomain(args.domain)) {

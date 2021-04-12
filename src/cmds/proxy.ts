@@ -101,7 +101,7 @@ function cmdProxy(args: any) {
         process.exit(0)
     }
 
-    if (args.domain && !args.name) {
+    if (args.domain && !args.name && !args.alias) {
         console.log("[*] Running within domain")
 
         for (let containerName of fs.readdirSync(path.join(CONTAINER_CONFIG_DIR, args.domain))) {
@@ -145,7 +145,7 @@ export const describe = "Delete and restart proxies based on configuration files
 export const handler = cmdProxy
 
 export const builder = (args: any) => {
-    yargs.usage("$0 proxy <options> <flags>")
+    yargs.usage("Usage: $0 proxy <options> <flags>")
     yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",

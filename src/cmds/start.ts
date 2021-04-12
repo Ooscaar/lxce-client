@@ -62,7 +62,7 @@ export function cmdStart(args: any) {
     }
 
     // --domain | --domain --name
-    if (args.domain && !args.name) {
+    if (args.domain && !args.name && !args.alias) {
         console.log(`[*] Starting all containers from ${args.domain}`)
         console.log("-----------------------------------------------")
         for (let containerName of getContainersDomain(args.domain)) {
@@ -96,7 +96,7 @@ export const describe = "Start containers"
 export const handler = cmdStart
 
 export const builder = (yargs: any) => {
-    yargs.usage("$0 start <options> <flags>")
+    yargs.usage("Usage: $0 start <options> <flags>")
     yargs.option("global", {
         alias: "g",
         describe: "Apply to all containers",
@@ -127,7 +127,7 @@ export const builder = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
-        roup: "Options"
+        group: "Options"
     })
     yargs.example([
         ["$0 start --global", "Start all containers"],
