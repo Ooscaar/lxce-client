@@ -12,7 +12,7 @@ fi
 
 # lxce command
 echo "[*] Building and installing the command"
-npm run ci
+npm ci
 cp bin/lxce /usr/sbin/lxce
 
 echo "[*] Building and installing the command: ok!"
