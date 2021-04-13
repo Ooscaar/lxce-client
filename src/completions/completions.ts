@@ -30,9 +30,9 @@ complete -o default -F _yargs_completions lxce
 ###-end-lxce-completions-###
 `
 
-export const zshCompletion = `# lxce completion script
+export const zshCompletion = `### lxce completion script
 #
-# Installation: lxce completion >> ~/.zshrc
+# Installation: lxce completion -s zsh >> ~/.zshrc
 #
 _lxce()
 {
@@ -44,5 +44,6 @@ _lxce()
   _describe 'values' reply
 }
 compdef _lxce lxce
+### lxce completion script
 `
 
