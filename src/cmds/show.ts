@@ -1,15 +1,18 @@
 import path from "path"
 import yargs from "yargs"
-import { CONTAINER_CONFIG_DIR } from "../constants"
+import { CONF_FILE, CONTAINER_CONFIG_DIR, SSH_DIR } from "../constants"
 import {
     getDomains,
     getContainersDomain,
     readContainerConfig,
     getContainerName,
     checkDomain,
-    checkInitialized
+    checkInitialized,
+    generatePassword,
+    readLxceConfig
 } from "../utils/util"
 import chalk from "chalk"
+import fs from "fs"
 
 
 
@@ -33,7 +36,12 @@ function checkShow(domain: string) {
 
 }
 
-function show(name: string, domain: string) {
+// Prints:
+// - ssh configuration
+// - password
+// - container configuration (verbose enabled)
+function show(name: string, domain: string, verbose: string) {
+    const lxceConfig = readLxceConfig(CONF_FILE)
     const containerConfig = readContainerConfig(
         path.join(
             CONTAINER_CONFIG_DIR,
@@ -41,9 +49,20 @@ function show(name: string, domain: string) {
             name
         )
     )
+    const sshConfig = fs.readFileSync(path.join(SSH_DIR, domain, name), "utf-8")
+    const password = generatePassword(
+        lxceConfig.seed,
+        name,
+        containerConfig.user
+    )
+
     //let json = Convert.containerConfigToJson(containerConfig)
-    console.log(chalk.bold.cyan(`[*] Configuration ${name} (${containerConfig.alias})`))
-    console.log(containerConfig)
+    console.log(chalk.bold.cyan(`[*] Configuration ${name}`))
+    console.log(chalk.blue(sshConfig))
+    console.log(chalk.red(`Password: ${password}`))
+    if (verbose) {
+        console.log(containerConfig)
+    }
 
 }
 // Install function
@@ -64,7 +83,7 @@ function cmdShow(args: any) {
             console.log(`[*] Configurations from`, chalk.bold(`${domain}`))
             console.log("---------------------------------------")
             for (let containerName of getContainersDomain(domain)) {
-                show(containerName, domain)
+                show(containerName, domain, args.extra)
             }
         }
         process.exit(0)
@@ -75,7 +94,7 @@ function cmdShow(args: any) {
         console.log(`[*] Configurations from`, chalk.bold(`${args.domain}`))
         console.log("---------------------------------------")
         for (let containerName of getContainersDomain(args.domain)) {
-            show(containerName, args.domain)
+            show(containerName, args.domain, args.extra)
         }
         process.exit(0)
 
@@ -86,7 +105,7 @@ function cmdShow(args: any) {
             process.exit(1)
         }
         let containerName = getContainerName(args.alias ?? args.name, args.domain)
-        show(containerName, args.domain)
+        show(containerName, args.domain, args.extra)
         process.exit(0)
     }
 }
@@ -132,6 +151,15 @@ export const builder = (yargs: any) => {
         demand: false,
         type: 'string',
         nargs: 1,
+        group: "Options"
+    })
+    yargs.option("extra", {
+        alias: 'e',
+        describe: 'Show extra information',
+        demand: false,
+        default: false,
+        type: 'boolean',
+        nargs: 0,
         group: "Options"
     })
     yargs.example([
