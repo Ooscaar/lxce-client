@@ -31,8 +31,6 @@ else
 fi
 
 ## zsh
-mkdir -p /usr/local/share/zsh/site-functions/
-#lxce completion -s zsh > /usr/local/share/zsh/site-functions/_lxce
 if ! grep -q "compdef _lxce lxce" ~/.zshrc; then
 	lxce completion -s zsh >> ~/.zshrc
 	echo "[*] Zsh completion installed"
