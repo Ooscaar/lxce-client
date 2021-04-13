@@ -13,7 +13,9 @@ _yargs_completions()
     args=("\${COMP_WORDS[@]}")
 
     # ask yargs to generate completions.
-    type_list=$(/usr/sbin/lxce --get-yargs-completions "\${args[@]}")
+    # awk added to avoid conflicts with some bash completion scripts
+    # (i.e: the .bashrc of Ubuntu)
+    type_list=$(/usr/sbin/lxce --get-yargs-completions "\${args[@]}" | awk -F ':' '{print $1}')
 
     COMPREPLY=( $(compgen -W "\${type_list}" -- \${cur_word}) )
 
