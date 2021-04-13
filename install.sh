@@ -13,6 +13,7 @@ fi
 # lxce command
 echo "[*] Building and installing the command"
 npm ci
+npm run pkg
 cp bin/lxce /usr/sbin/lxce
 
 echo "[*] Building and installing the command: ok!"
