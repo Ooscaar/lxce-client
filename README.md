@@ -17,8 +17,6 @@ Command to manage LXD containers with a tunned configuration which includes dock
     - [lxce alias](#lxce-alias)
     - [lxce nginx](#lxce-nginx)
     - [lxce man](#lxce-man)
-- [FIRST STEPS](#first-steps)
-  - [LXCE PASSWORD](#lxce-password)
 
 
 ## USAGE
